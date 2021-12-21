@@ -30,7 +30,6 @@ abstract class OptimizeJarTask : ProGuardTask() {
 
     init {
         apply {
-            configuration(config.orElse(project.rootProject.layout.projectDirectory.file("proguard.conf")))
             injars(input)
             outjars(output)
             libraryjars("${System.getProperty("java.home")}/lib/rt.jar")
@@ -38,6 +37,23 @@ abstract class OptimizeJarTask : ProGuardTask() {
                 classpath.from(it)
             }
             libraryjars(classpath.files)
+
+            keep(
+                """
+                public class * {
+                    public *;
+                }
+                """.trimIndent()
+            )
+
+            keepattributes("RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations")
+
+            doFirst {
+                val config = config.orElse(project.rootProject.layout.projectDirectory.file("proguard.conf"))
+                if (config.get().asFile.exists()) {
+                    configuration(config)
+                }
+            }
         }
     }
 }
