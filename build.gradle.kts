@@ -52,21 +52,11 @@ tasks.withType<KotlinCompile> {
 
         val version = numberString.toInt()
 
-        var exclude = if (version >= 9) {
+        if (version >= 9) {
             it.name.contains("FabricLegacyMappingProvider")
         } else {
             it.name.contains("FabricModernMappingProvider")
         }
-
-        if (version >= 8) {
-            if (it.name.contains("FabricLegacyPluginApplier")) {
-                exclude = true
-            }
-        } else if (it.name.contains("FabricModernPluginApplier")) {
-            exclude = true
-        }
-
-        exclude
     }
 }
 

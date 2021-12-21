@@ -20,13 +20,13 @@ class UnifiedBuildsPlugin : Plugin<Project> {
                     unifiedModule.platforms.all { rootPlatform ->
                         val baseData = baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java)
                         val base = baseData.platforms.firstOrNull { it.name == rootPlatform.name }
-                        val baseProjectPlatform = base?.let { ProjectPlatform(baseData.project.childProjects.getValue(it.name), it) }
-                        rootPlatform.handle(mcVersion, childProjects.getValue(rootPlatform.name), this, unifiedModule, baseProjectPlatform, null)
+                        val baseProjectPlatform = base?.let { ProjectPlatform(baseData.project.childProjects[it.name] ?: baseData.project, it) }
+                        rootPlatform.handle(mcVersion, childProjects[rootPlatform.name] ?: this, this, unifiedModule, baseProjectPlatform, null)
                         unifiedBuilds.modules.all { module ->
                             val data = module.extensions.getByType(UnifiedBuildsModuleExtension::class.java)
                             // Platforms in the core module that have the same name are considered the 'parent', this is the project you'd run for all modules to be available.
                             data.platforms.matching { it.name == rootPlatform.name }.all { platform ->
-                                val currentProject = module.childProjects.getValue(platform.name)
+                                val currentProject = module.childProjects[platform.name] ?: module
                                 if (base == platform) {
                                     platform.handle(mcVersion, currentProject, this, baseData, null, rootPlatform)
                                 } else {

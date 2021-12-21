@@ -19,7 +19,10 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         super.handle(version, project, root, module, base, parent)
 
-        FabricPluginApplier(project)
+        project.apply {
+            it.plugin("fabric-loom")
+        }
+
         project.dependencies.add("minecraft", "com.mojang:minecraft:$version")
         project.dependencies.add("mappings", FabricMappingProvider.getDependency(project))
         project.dependencies.add("modImplementation", "net.fabricmc:fabric-loader:$loaderVersion")
@@ -61,7 +64,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
 
         if (parent != null) {
             project.extensions.add("fabricEntrypoints", project.container(Array<String>::class.java))
-            val parentProject = root.childProjects.getValue(parent.name)
+            val parentProject = root.childProjects[parent.name] ?: root
             parentProject.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
                 it.dependsOn(optimizedJar)
             }

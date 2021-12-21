@@ -2,13 +2,10 @@ import net.msrandom.unifiedbuilds.UnifiedBuildsPlugin
 import net.msrandom.unifiedbuilds.platforms.fabric.Fabric
 import net.msrandom.unifiedbuilds.platforms.Forge
 import org.gradle.api.JavaVersion
+import org.gradle.api.plugins.JavaPlugin
 
 plugins {
     id("net.msrandom.unifiedbuilds") version "1.+"
-}
-
-allprojects {
-    apply<UnifiedBuildsPlugin>()
 }
 
 base {
@@ -18,6 +15,8 @@ base {
 val subModules = childProjects.values.filter { it.name != "forge" && it.name != "fabric" }
 
 allprojects {
+    apply<UnifiedBuildsPlugin>()
+
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8

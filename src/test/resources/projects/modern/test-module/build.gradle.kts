@@ -1,5 +1,5 @@
 base {
-    archivesName.set("TestModule")
+    archivesName.set("Module")
 }
 
 unifiedModule {
