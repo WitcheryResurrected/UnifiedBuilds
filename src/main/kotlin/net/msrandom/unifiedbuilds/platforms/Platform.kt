@@ -1,20 +1,21 @@
 package net.msrandom.unifiedbuilds.platforms
 
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.plugins.BasePluginExtension
+import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.TaskProvider
+import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 abstract class Platform(val name: String, val loaderVersion: String) {
     open fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
-        if (project != module.project) {
-            module.project.tasks.all {
-                project.tasks.findByName(it.name)?.let { task -> it.dependsOn(task) }
-            }
-        }
-
         module.common?.let {
             project.extensions.getByType(SourceSetContainer::class.java).getByName(SourceSet.MAIN_SOURCE_SET_NAME) { sourceSet ->
                 val common = module.project.layout.projectDirectory.dir(it)
@@ -37,19 +38,39 @@ abstract class Platform(val name: String, val loaderVersion: String) {
                 sourceSet.resources.srcDir(common.dir("resources"))
             }
         }
-
-        project.applyModuleNaming(version, "-$name", root, module)
-
-        if (project != module.project) {
-            module.project.applyModuleNaming(version, "", root, module)
-        }
     }
 
-    private fun Project.applyModuleNaming(minecraftVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
+    protected fun addOptimizedJar(project: Project, root: Project, input: Provider<RegularFile>, remapJar: TaskProvider<out Task>, warn: Boolean, remapInput: () -> Property<RegularFile>): TaskProvider<OptimizeJarTask> {
+        val optimizeJar = project.tasks.register("optimizeJar", OptimizeJarTask::class.java) {
+            it.input.set(input)
+            it.output.set(
+                project.layout.buildDirectory.dir("minified").flatMap { dir ->
+                    input.map { input -> dir.file(input.asFile.name) }
+                }
+            )
+            it.owningProject = root
+
+            remapInput().set(it.output)
+            it.finalizedBy(remapJar)
+
+            it.dontnote()
+            if (!warn) {
+                it.dontwarn()
+            }
+        }
+
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
+            it.dependsOn(optimizeJar)
+        }
+
+        return optimizeJar
+    }
+
+    protected fun Project.applyModuleNaming(minecraftVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
         fun Project.archivesName() = extensions.getByType(BasePluginExtension::class.java).archivesName
 
         if (root == module.project) {
-            if (this != module.project) {
+            if (this != root) {
                 archivesName().set(root.archivesName())
             }
         } else {

@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import net.msrandom.unifiedbuilds.ModInformation
+import net.msrandom.unifiedbuilds.platforms.fabric.Fabric
 import org.gradle.api.DefaultTask
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.file.RegularFile
@@ -88,12 +89,12 @@ abstract class FabricModJsonTask : DefaultTask() {
                 if (suggests.size() != 0) add("suggests", suggests)
             }
 
-            val entrypoints = project.extensions.getByType(object : TypeOf<NamedDomainObjectContainer<Array<String>>>() {})
-            if (entrypoints.isNotEmpty() && entrypoints.any(Array<*>::isNotEmpty)) {
+            val entrypointsExtesion = project.extensions.getByType(object : TypeOf<NamedDomainObjectContainer<Fabric.Entrypoint>>() {})
+            if (entrypointsExtesion.isNotEmpty() && entrypointsExtesion.any { it.points.isNotEmpty() }) {
                 val entrypointsObject = JsonObject()
-                for ((name, points) in entrypoints.asMap) {
-                    if (points.isNotEmpty()) {
-                        entrypointsObject.add(name, JsonArray().apply { points.forEach(::add) })
+                for (entrypoints in entrypointsExtesion) {
+                    if (entrypoints.points.isNotEmpty()) {
+                        entrypointsObject.add(entrypoints.name, JsonArray().apply { entrypoints.points.forEach(::add) })
                     }
                 }
             }

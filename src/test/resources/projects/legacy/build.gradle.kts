@@ -14,6 +14,8 @@ base {
 allprojects {
     apply<UnifiedBuildsPlugin>()
 
+    version = "1.0"
+
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
@@ -27,7 +29,7 @@ allprojects {
 }
 
 unifiedBuilds {
-    minecraftVersion.set("1.16.5")
+    minecraftVersion.set("1.12.2")
     license.set("CC-2.0")
 
     baseProject.set(project(":test-base"))

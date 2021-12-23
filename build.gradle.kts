@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     `java-gradle-plugin`
-    kotlin("jvm") version "1.6.+"
+    kotlin("jvm") version "1.5.+"
 }
 
 gradlePlugin {
@@ -15,6 +15,12 @@ gradlePlugin {
 }
 
 val loomVersion = (findProperty("unifiedbuilds.fabric_loom.version") as? String) ?: "0.10-SNAPSHOT"
+
+tasks.withType<KotlinCompile> {
+    // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
+    kotlinOptions.apiVersion = "1.4"
+    kotlinOptions.languageVersion = "1.4"
+}
 
 repositories {
     mavenCentral()

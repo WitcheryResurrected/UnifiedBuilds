@@ -26,11 +26,17 @@ class UnifiedBuildsPlugin : Plugin<Project> {
                             val data = module.extensions.getByType(UnifiedBuildsModuleExtension::class.java)
                             // Platforms in the core module that have the same name are considered the 'parent', this is the project you'd run for all modules to be available.
                             data.platforms.matching { it.name == rootPlatform.name }.all { platform ->
-                                val currentProject = module.childProjects[platform.name] ?: module
-                                if (base == platform) {
-                                    platform.handle(mcVersion, currentProject, this, baseData, null, rootPlatform)
-                                } else {
-                                    platform.handle(mcVersion, currentProject, this, data, baseProjectPlatform, rootPlatform)
+                                if (platform != rootPlatform) {
+                                    val currentProject = module.childProjects[platform.name] ?: module
+                                    val parentProject = childProjects[rootPlatform.name] ?: this
+                                    if (base == platform) {
+                                        platform.handle(mcVersion, currentProject, this, baseData, null, rootPlatform)
+                                    } else {
+                                        platform.handle(mcVersion, currentProject, this, data, baseProjectPlatform, rootPlatform)
+                                    }
+                                    parentProject.tasks.all {
+                                        currentProject.tasks.findByName(it.name)?.let { task -> it.dependsOn(task) }
+                                    }
                                 }
                             }
                         }

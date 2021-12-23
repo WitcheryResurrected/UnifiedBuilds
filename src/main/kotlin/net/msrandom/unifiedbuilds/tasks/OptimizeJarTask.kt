@@ -1,5 +1,6 @@
 package net.msrandom.unifiedbuilds.tasks
 
+import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Provider
@@ -22,6 +23,9 @@ abstract class OptimizeJarTask : ProGuardTask() {
     abstract val output: RegularFileProperty
         @OutputFile get
 
+    lateinit var owningProject: Project
+        @Internal get
+
     abstract val classpath: ConfigurableFileCollection
         @Optional
         @Classpath
@@ -36,7 +40,7 @@ abstract class OptimizeJarTask : ProGuardTask() {
             project.configurations.named("compileClasspath").takeIf(Provider<*>::isPresent)?.let {
                 classpath.from(it)
             }
-            libraryjars(classpath.files)
+            libraryjars(classpath)
 
             keep(
                 """
@@ -49,10 +53,11 @@ abstract class OptimizeJarTask : ProGuardTask() {
             keepattributes("RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations")
 
             doFirst {
-                val config = config.orElse(project.rootProject.layout.projectDirectory.file("proguard.conf"))
-                if (config.get().asFile.exists()) {
-                    configuration(config)
-                }
+                config.orElse(owningProject.rootProject.layout.projectDirectory.file("proguard.conf"))
+                    .takeIf { it.get().asFile.exists() }
+                    ?.let {
+                        configuration(it)
+                    }
             }
         }
     }

@@ -1,12 +1,9 @@
 rootProject.name = "test-mod-modern"
 
-fun includeMultiPlatform(name: String) {
-    include(name)
-    include("$name:forge")
-    include("$name:fabric")
+fun includeMultiPlatform(vararg names: String) {
+    for (name in names)
+        include(name, "$name:forge", "$name:fabric")
 }
 
-include("forge")
-include("fabric")
-includeMultiPlatform("test-base")
-includeMultiPlatform("test-module")
+include("forge", "fabric")
+includeMultiPlatform("test-base", "test-module")

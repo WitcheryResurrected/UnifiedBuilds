@@ -6,6 +6,7 @@ import org.gradle.api.plugins.JavaPlugin
 
 plugins {
     id("net.msrandom.unifiedbuilds") version "1.+"
+    kotlin("jvm") version "1.5.+"
 }
 
 base {
@@ -15,6 +16,7 @@ base {
 val subModules = childProjects.values.filter { it.name != "forge" && it.name != "fabric" }
 
 allprojects {
+    apply(plugin = "kotlin")
     apply<UnifiedBuildsPlugin>()
 
     java {
