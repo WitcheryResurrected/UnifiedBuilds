@@ -14,7 +14,7 @@ class ProjectTests {
     fun `Modern Mod Test`() = test("modern")
 
     private fun test(name: String) {
-        println("Building test project '$name'")
+        println("Building test project '$name'...")
         GradleRunner.create()
             .withProjectDir(File("src/test/resources/projects/$name"))
             .withPluginClasspath()
@@ -22,5 +22,8 @@ class ProjectTests {
             .forwardOutput()
             .withDebug(true)
             .build()
+
+        println("Built test project '$name' successfully.")
+        println()
     }
 }

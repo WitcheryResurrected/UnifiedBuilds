@@ -4,7 +4,7 @@ import org.gradle.api.Project
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 
-class ModInformation(private val project: Project) : (ModInformation.() -> Unit) -> Unit {
+class ModInformation(val project: Project) : (ModInformation.() -> Unit) -> Unit {
     val modId = property<String>()
     val name = property<String>()
     val description = property<String>()

@@ -14,14 +14,14 @@ base {
 allprojects {
     apply<UnifiedBuildsPlugin>()
 
-    version = "1.0"
-
     java {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
     }
 
     unifiedModule {
+        modVersion.set("1.0")
+
         platforms {
             add(Forge("forge", "14.23.5.2855"))
         }

@@ -1,41 +1,34 @@
 package net.msrandom.unifiedbuilds.tasks
 
+import net.msrandom.unifiedbuilds.tasks.ProjectJarArchive.Companion.setConventions
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import proguard.gradle.ProGuardTask
 
-@CacheableTask
-abstract class OptimizeJarTask : ProGuardTask() {
+abstract class OptimizeJarTask : ProGuardTask(), ProjectJarArchive {
     abstract val config: RegularFileProperty
-        @Optional
-        @PathSensitive(PathSensitivity.RELATIVE)
-        @InputFile
-        get
+        @Internal get
 
     abstract val input: RegularFileProperty
-        @PathSensitive(PathSensitivity.NONE)
-        @InputFile
-        get
+        @Internal get
 
-    abstract val output: RegularFileProperty
-        @OutputFile get
-
-    lateinit var owningProject: Project
+    abstract val owningProject: Property<Project>
         @Internal get
 
     abstract val classpath: ConfigurableFileCollection
-        @Optional
-        @Classpath
-        @InputFiles
-        get
+        @Internal get
 
     init {
         apply {
+            setConventions()
+            archiveClassifier.convention("minified")
             injars(input)
-            outjars(output)
+            outjars(archiveFile)
             libraryjars("${System.getProperty("java.home")}/lib/rt.jar")
             project.configurations.named("compileClasspath").takeIf(Provider<*>::isPresent)?.let {
                 classpath.from(it)
@@ -52,8 +45,11 @@ abstract class OptimizeJarTask : ProGuardTask() {
 
             keepattributes("RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations")
 
+            dontnote()
+
             doFirst {
-                config.orElse(owningProject.rootProject.layout.projectDirectory.file("proguard.conf"))
+                val conf = owningProject.map { it.rootProject.layout.projectDirectory.file("proguard.conf") }
+                config.orElse(conf)
                     .takeIf { it.get().asFile.exists() }
                     ?.let {
                         configuration(it)

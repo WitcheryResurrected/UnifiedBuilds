@@ -3,46 +3,53 @@ package net.msrandom.unifiedbuilds.tasks.fabric
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import net.msrandom.unifiedbuilds.ModInformation
+import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.platforms.fabric.Fabric
 import org.gradle.api.DefaultTask
 import org.gradle.api.NamedDomainObjectContainer
-import org.gradle.api.file.RegularFile
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.gradle.api.reflect.TypeOf
 import org.gradle.api.tasks.*
 
 @CacheableTask
 abstract class FabricModJsonTask : DefaultTask() {
-    abstract val info: Property<ModInformation>
-        @Input get
+    abstract val baseData: Property<UnifiedBuildsModuleExtension>
+        @Internal get
 
-    abstract val version: Property<String>
-        @Input get
+    abstract val moduleData: Property<UnifiedBuildsModuleExtension>
+        @Internal get
 
     abstract val license: Property<String>
         @Input get
 
-    val output: Provider<RegularFile> = project.layout.buildDirectory.dir("generated_fabric_jsons").map { it.file("fabric.mod.json") }
-        @Internal get
+    abstract val output: DirectoryProperty
+        @Optional
+        @OutputDirectory
+        get
+
+    init {
+        apply {
+            output.convention(project.layout.buildDirectory.dir("generated-fabric-json"))
+        }
+    }
 
     @TaskAction
     fun makeJson() {
-        val file = output.get().asFile
+        val file = output.file("fabric.mod.json").get().asFile
         file.parentFile.mkdirs()
         val json = JsonObject().apply {
-            val modInfo = info.get()
+            val modInfo = moduleData.get().info
             addProperty("schemaVersion", 1)
             addProperty("id", modInfo.modId.get())
-            addProperty("version", version.get())
+            addProperty("version", moduleData.get().modVersion.get())
             if (modInfo.name.isPresent) addProperty("name", modInfo.name.get())
             if (modInfo.description.isPresent) addProperty("description", modInfo.description.get())
 
-            if (modInfo.authors.isPresent && modInfo.authors.get().isNotEmpty())
+            if (modInfo.authors.get().isNotEmpty())
                 add("authors", JsonArray().apply { modInfo.authors.get().forEach(::add) })
 
-            if (modInfo.contributors.isPresent && modInfo.contributors.get().isNotEmpty())
+            if (modInfo.contributors.get().isNotEmpty())
                 add("contributors", JsonArray().apply { modInfo.contributors.get().forEach(::add) })
 
             if (modInfo.url.isPresent) {
@@ -70,11 +77,26 @@ abstract class FabricModJsonTask : DefaultTask() {
                 }
             }
 
-            if (modInfo.mixins.isPresent && modInfo.mixins.get().isNotEmpty())
+            if (project != moduleData.get().project) {
+                val currentModuleInfo = project.extensions.getByType(UnifiedBuildsModuleExtension::class.java).info
+                modInfo.mixins.addAll(currentModuleInfo.mixins.get())
+                modInfo.dependencies.addAll(currentModuleInfo.dependencies.get())
+            }
+
+            if (modInfo.mixins.get().isNotEmpty())
                 add("mixins", JsonArray().apply { modInfo.mixins.get().forEach(::add) })
 
-            if (modInfo.dependencies.isPresent && modInfo.dependencies.get().isNotEmpty()) {
-                val depends = JsonObject()
+            val depends = JsonObject()
+
+            // If there is no platform with the project name, that means there's only one platform,
+            // since multiplatform projects are required to include child projects with matching names
+            val platform = moduleData.get().platforms.firstOrNull { it.name == project.name }
+                ?: moduleData.get().platforms.first()
+
+            depends.addProperty("fabricloader", ">=${platform.loaderVersion}")
+            depends.addProperty("fabric", "*")
+
+            if (modInfo.dependencies.get().isNotEmpty()) {
                 val suggests = JsonObject()
                 for (dependency in modInfo.dependencies.get()) {
                     val key = dependency.modId
@@ -85,9 +107,12 @@ abstract class FabricModJsonTask : DefaultTask() {
                         suggests.addProperty(key, version)
                     }
                 }
-                if (depends.size() != 0) add("depends", depends)
                 if (suggests.size() != 0) add("suggests", suggests)
             }
+            if (baseData.isPresent) {
+                depends.addProperty(baseData.get().info.modId.get(), baseData.get().modVersion.get())
+            }
+            add("depends", depends)
 
             val entrypointsExtesion = project.extensions.getByType(object : TypeOf<NamedDomainObjectContainer<Fabric.Entrypoint>>() {})
             if (entrypointsExtesion.isNotEmpty() && entrypointsExtesion.any { it.points.isNotEmpty() }) {

@@ -30,11 +30,12 @@ repositories {
 }
 
 dependencies {
-    implementation(kotlin("stdlib"))
+    implementation(kotlin("stdlib", version = "1.4.+"))
 
     implementation(group = "com.electronwill.night-config", name = "core", version = "3.6.+")
     implementation(group = "com.electronwill.night-config", name = "toml", version = "3.6.+")
     implementation(group = "com.google.code.gson", name = "gson", version = "2.8.+")
+    implementation(group = "org.zeroturnaround", name = "zt-zip", version = "1.+")
 
     implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
 
@@ -47,7 +48,7 @@ dependencies {
     testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.8.+")
 }
 
-tasks.withType<KotlinCompile> {
+tasks.compileKotlin {
     exclude {
         val endIndex = loomVersion.indexOf('.', 2).takeIf { i -> i != -1 } ?: loomVersion.indexOf('-', 2)
         val numberString = if (endIndex == -1) {

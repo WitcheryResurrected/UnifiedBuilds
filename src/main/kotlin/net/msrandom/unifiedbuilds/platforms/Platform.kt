@@ -1,6 +1,7 @@
 package net.msrandom.unifiedbuilds.platforms
 
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.platforms.Platform.Companion.applyModuleNaming
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -8,17 +9,17 @@ import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.TaskProvider
+import org.gradle.jvm.tasks.Jar
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 abstract class Platform(val name: String, val loaderVersion: String) {
     open fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
-        module.common?.let {
-            project.extensions.getByType(SourceSetContainer::class.java).getByName(SourceSet.MAIN_SOURCE_SET_NAME) { sourceSet ->
-                val common = module.project.layout.projectDirectory.dir(it)
+        project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME) { sourceSet ->
+            if (module.common.isPresent) {
+                val common = module.project.layout.projectDirectory.dir(module.common.get())
                 sourceSet.java.srcDir(common.dir("java"))
 
                 project.plugins.withId("kotlin") {
@@ -38,22 +39,31 @@ abstract class Platform(val name: String, val loaderVersion: String) {
                 sourceSet.resources.srcDir(common.dir("resources"))
             }
         }
+
+        if (!module.named && module.project != project) {
+            module.project.applyModuleNaming(version, "", root, module)
+            module.named = true
+        }
+
+        project.applyModuleNaming(version, "-$name", root, module)
     }
 
-    protected fun addOptimizedJar(project: Project, root: Project, input: Provider<RegularFile>, remapJar: TaskProvider<out Task>, warn: Boolean, remapInput: () -> Property<RegularFile>): TaskProvider<OptimizeJarTask> {
+    protected fun addOptimizedJar(
+        project: Project,
+        root: Project,
+        jar: TaskProvider<out Jar>,
+        remapJar: TaskProvider<out Task>,
+        warn: Boolean,
+        remapInput: () -> Property<RegularFile>
+    ) {
         val optimizeJar = project.tasks.register("optimizeJar", OptimizeJarTask::class.java) {
-            it.input.set(input)
-            it.output.set(
-                project.layout.buildDirectory.dir("minified").flatMap { dir ->
-                    input.map { input -> dir.file(input.asFile.name) }
-                }
-            )
-            it.owningProject = root
+            it.dependsOn(jar)
+            it.input.set(jar.flatMap(Jar::getArchiveFile))
+            it.owningProject.set(root)
 
-            remapInput().set(it.output)
+            remapInput().set(it.archiveFile)
             it.finalizedBy(remapJar)
 
-            it.dontnote()
             if (!warn) {
                 it.dontwarn()
             }
@@ -62,29 +72,31 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
             it.dependsOn(optimizeJar)
         }
-
-        return optimizeJar
     }
 
-    protected fun Project.applyModuleNaming(minecraftVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
-        fun Project.archivesName() = extensions.getByType(BasePluginExtension::class.java).archivesName
+    fun getProject(project: Project) = project.childProjects[name] ?: project
 
-        if (root == module.project) {
-            if (this != root) {
-                archivesName().set(root.archivesName())
-            }
-        } else {
-            if (this == module.project) {
-                afterEvaluate {
-                    archivesName().set("${root.archivesName().get()}${archivesName().get()}")
+    companion object {
+        const val REMAP_JAR_NAME = "remapJar"
+
+        fun Project.applyModuleNaming(minecraftVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
+            fun Project.archivesName() = extensions.getByType(BasePluginExtension::class.java).archivesName
+
+            if (root == module.project) {
+                if (this != root) {
+                    archivesName().set(root.archivesName())
                 }
             } else {
-                archivesName().set(module.project.archivesName())
+                if (this == module.project) {
+                    afterEvaluate {
+                        archivesName().set("${root.archivesName().get()}${archivesName().get()}")
+                    }
+                } else {
+                    archivesName().set(module.project.archivesName())
+                }
             }
-        }
 
-        module.project.afterEvaluate {
-            project.version = "$minecraftVersion-${it.version}$platformName"
+            project.version = "$minecraftVersion-${module.modVersion.get()}$platformName"
         }
     }
 }

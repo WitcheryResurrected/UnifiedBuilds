@@ -11,9 +11,10 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.api.tasks.bundling.Jar
+import org.gradle.jvm.tasks.Jar
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.language.jvm.tasks.ProcessResources
+import sun.tools.jar.resources.jar
 
 class Fabric(name: String, loaderVersion: String, private val apiVersion: String) : Platform(name, loaderVersion) {
     class Entrypoint(val name: String, val points: Collection<String>) {
@@ -23,12 +24,6 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
 
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         super.handle(version, project, root, module, base, parent)
-
-        if (project != module.project) {
-            module.project.applyModuleNaming(version, "", root, module)
-        }
-
-        project.applyModuleNaming(version, "-$name", root, module)
 
         project.apply {
             it.plugin("fabric-loom")
@@ -42,7 +37,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         project.dependencies.add("modImplementation", "net.fabricmc.fabric-api:fabric-api:$apiVersion")
 
         if (parent != null) {
-            val parentProject = root.childProjects[parent.name] ?: root
+            val parentProject = parent.getProject(root)
             project.extensions.add("fabricEntrypoints", project.container(Entrypoint::class.java))
 
             parentProject.dependencies.add("implementation", project)
@@ -59,15 +54,16 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             }
 
             val createModJson = project.tasks.register("createModJson", FabricModJsonTask::class.java) {
-                it.info.set(module.info)
-
-                // This task would get created before the project finishes evaluating, so version should be the unmodified one set by the user
-                it.version.set(project.version.toString())
+                if (base != null) {
+                    val baseProject = root.extensions.getByType(UnifiedBuildsExtension::class.java).baseProject.get()
+                    it.baseData.set(baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java))
+                }
+                it.moduleData.set(module)
                 it.license.set(root.extensions.getByType(UnifiedBuildsExtension::class.java).license)
             }
 
             @Suppress("UnstableApiUsage")
-            project.tasks.withType(ProcessResources::class.java).getByName(JavaPlugin.PROCESS_RESOURCES_TASK_NAME) {
+            project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) {
                 it.dependsOn(createModJson)
                 it.from(createModJson.flatMap(FabricModJsonTask::output))
             }
@@ -78,27 +74,23 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         }
 
         val remapJar = project.tasks.named(REMAP_JAR_NAME, RemapJarTask::class.java)
-        val jarTask = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)
-        val defaultArchive = jarTask.flatMap(Jar::getArchiveFile)
+        val jar = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)
 
-        project.tasks.getByName(LifecycleBasePlugin.BUILD_TASK_NAME).dependsOn(remapJar)
-
-        remapJar.configure {
-            it.dependsOn(jarTask)
-            it.destinationDirectory.set(project.layout.buildDirectory.dir("releases"))
-            it.addNestedDependencies.set(true)
-            it.input.set(defaultArchive)
+        project.tasks.named(LifecycleBasePlugin.BUILD_TASK_NAME) {
+            it.dependsOn(remapJar)
         }
 
-        addOptimizedJar(project, root, defaultArchive, remapJar, parent != null) { remapJar.get().input }
-        // project.artifacts.add("archives", remapJar.get())
+        project.tasks.withType(Jar::class.java).matching { it !is RemapJarTask }.all {
+            it.archiveClassifier.convention("dev")
+        }
 
-/*            project.tasks.withType(OptimizeJarTask::class.java).all {
-                project.artifacts.add("archives", it.output)
-            }*/
-    }
+        remapJar.configure {
+            it.dependsOn(jar)
+            it.input.set(jar.flatMap(Jar::getArchiveFile))
+            it.addNestedDependencies.set(true)
+        }
 
-    companion object {
-        private const val REMAP_JAR_NAME = "remapJar"
+        addOptimizedJar(project, root, jar, remapJar, parent != null) { remapJar.get().input }
+        project.artifacts.add("archives", remapJar)
     }
 }

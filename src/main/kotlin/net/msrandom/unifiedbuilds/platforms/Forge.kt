@@ -4,7 +4,9 @@ import net.minecraftforge.gradle.common.util.RunConfig
 import net.minecraftforge.gradle.userdev.UserDevExtension
 import net.minecraftforge.gradle.userdev.UserDevPlugin
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
+import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.tasks.forge.MCModInfoTask
 import net.msrandom.unifiedbuilds.tasks.forge.RemapForgeArtifactTask
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
@@ -12,7 +14,7 @@ import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.reflect.TypeOf
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.api.tasks.bundling.Jar
+import org.gradle.jvm.tasks.Jar
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.language.jvm.tasks.ProcessResources
 import wtf.gofancy.fancygradle.FancyExtension
@@ -27,14 +29,6 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
         val legacy = subversion <= 12
 
-        if (legacy) {
-            if (project != module.project) {
-                module.project.applyModuleNaming(version, "", root, module)
-            }
-
-            project.applyModuleNaming(version, "-$name", root, module)
-        }
-
         project.apply {
             it.plugin(UserDevPlugin::class.java)
         }
@@ -46,8 +40,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         val coreMod = if (legacy) {
             val baseProject = base?.project ?: project
             val loadingPlugins = baseProject.extensions.getByType(SourceSetContainer::class.java)
-                .getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-                .resources.matching { it.include("coremod.txt") }
+                .getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.matching { it.include("coremod.txt") }
 
             loadingPlugins.takeUnless { it.isEmpty }?.singleFile?.readText()
         } else {
@@ -70,11 +63,22 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
             minecraft.mappings("snapshot", "20180814-1.12")
 
-            if (base == null) {
-                // Hook into processResources to allow us to exclude the custom coremod.txt file
+            if (parent != null) {
+                val mcModInfo = project.tasks.register("createMcModInfo", MCModInfoTask::class.java) {
+                    if (base != null) {
+                        val baseProject = root.extensions.getByType(UnifiedBuildsExtension::class.java).baseProject.get()
+                        it.baseData.set(baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java))
+                    }
+                    it.moduleData.set(module)
+                }
+
                 @Suppress("UnstableApiUsage")
-                project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java).configure {
-                    it.exclude("coremod.txt")
+                project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) {
+                    if (base == null) {
+                        it.exclude("coremod.txt")
+                    }
+                    it.from(mcModInfo.flatMap(MCModInfoTask::destinationDirectory))
+                    it.dependsOn(mcModInfo)
                 }
             }
         } else {
@@ -118,17 +122,24 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             task.enabled = false
 
             if (task.name == "reobfJar") {
-                val remapJar = project.tasks.register("remapJar", RemapForgeArtifactTask::class.java) {
+                val jar = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)
+
+                project.tasks.withType(Jar::class.java) {
+                    it.archiveClassifier.convention("dev")
+                }
+
+                val remapJar = project.tasks.register(REMAP_JAR_NAME, RemapForgeArtifactTask::class.java) {
                     it.setDependsOn(task.dependsOn)
-                    it.destinationDir.set(project.layout.buildDirectory.dir("releases"))
                     it.input.set(task.input)
                 }
 
-                addOptimizedJar(project, root, task.input, remapJar, parent != null) { remapJar.get().input }
+                addOptimizedJar(project, root, jar, remapJar, parent != null) { remapJar.get().input }
 
                 project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
                     it.dependsOn(remapJar)
                 }
+
+                project.artifacts.add("archives", remapJar.flatMap(RemapForgeArtifactTask::getOutput))
             }
         }
 
@@ -141,20 +152,27 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         }
 
         if (parent != null) {
-            val parentProject = root.childProjects[parent.name] ?: root
+            val parentProject = parent.getProject(root)
 
             parentProject.dependencies.add("implementation", project)
             if (base == null) {
                 println("Found base project for forge at ${project.path}, adding as a dependency for ${parentProject.path}")
             } else {
+                if (legacy) parentProject.dependencies.add(CONTAINED_DEP_CONFIGURATION, project)
+
                 // Make all modules that are not the base depend on it
                 project.dependencies.add("implementation", base.project)
                 println("Found forge module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
             }
         } else if (base != null) {
+            if (legacy) project.configurations.create(CONTAINED_DEP_CONFIGURATION)
             project.tasks.withType(Jar::class.java) { jar ->
                 jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
             }
         }
+    }
+
+    companion object {
+        const val CONTAINED_DEP_CONFIGURATION = "containedDep"
     }
 }
