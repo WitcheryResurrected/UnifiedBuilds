@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import net.msrandom.unifiedbuilds.ModInformation
+import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
@@ -20,8 +21,8 @@ abstract class MCModInfoTask : DefaultTask() {
     abstract val moduleData: Property<UnifiedBuildsModuleExtension>
         @Internal get
 
-    abstract val version: Property<String>
-        @Input get
+    abstract val rootData: Property<UnifiedBuildsExtension>
+        @Internal get
 
     abstract val destinationDirectory: DirectoryProperty
         @Optional
@@ -48,7 +49,8 @@ abstract class MCModInfoTask : DefaultTask() {
         json.add(
             JsonObject().apply {
                 addProperty("modid", modInfo.modId.get())
-                addProperty("version", version.get())
+                addProperty("version", rootData.get().modVersion.get())
+                addProperty("mcversion", rootData.get().minecraftVersion.get())
                 if (modInfo.name.isPresent) addProperty("name", modInfo.name.get())
                 if (modInfo.description.isPresent) addProperty("description", modInfo.description.get())
                 if (modInfo.url.isPresent) addProperty("url", modInfo.url.get())

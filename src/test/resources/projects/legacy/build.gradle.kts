@@ -4,7 +4,7 @@ import org.gradle.api.JavaVersion
 import org.gradle.api.plugins.JavaPlugin
 
 plugins {
-    id("net.msrandom.unifiedbuilds") version "1.+"
+    id("unifiedbuilds") version "1.+"
 }
 
 base {

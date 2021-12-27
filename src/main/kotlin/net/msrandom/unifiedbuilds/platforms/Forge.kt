@@ -37,10 +37,34 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
         project.dependencies.add("minecraft", "net.minecraftforge:forge:$version-$loaderVersion")
 
+        val main = project.extensions.getByType(SourceSetContainer::class.java).getByName(SourceSet.MAIN_SOURCE_SET_NAME)
+        val coreMod = if (legacy) {
+            val baseProject = base?.project ?: project
+            val loadingPlugins = baseProject.extensions.getByType(SourceSetContainer::class.java)
+                .getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.matching { it.include("coremod.txt") }
+
+            loadingPlugins.takeUnless { it.isEmpty }?.singleFile?.readText()?.trim()
+        } else {
+            null
+        }
+
+        val accessTransformers = main.resources.matching {
+            it.include("META-INF/accesstransformer.cfg")
+        }
+
+        if (!accessTransformers.isEmpty) {
+            minecraft.accessTransformer(accessTransformers.singleFile)
+        }
+
         if (parent != null) {
             val parentProject = parent.getProject(root)
 
             parentProject.dependencies.add("implementation", project)
+            if (!accessTransformers.isEmpty) {
+                parentProject.extensions.configure(UserDevExtension::class.java) {
+                    it.accessTransformer(accessTransformers.singleFile)
+                }
+            }
             if (base == null) {
                 println("Found base project for forge at ${project.path}, adding as a dependency for ${parentProject.path}")
             } else {
@@ -48,6 +72,11 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
                 // Make all modules that are not the base depend on it
                 project.dependencies.add("implementation", base.project)
+                if (!accessTransformers.isEmpty) {
+                    base.project.extensions.configure(UserDevExtension::class.java) {
+                        it.accessTransformer(accessTransformers.singleFile)
+                    }
+                }
                 println("Found forge module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
             }
         } else if (base != null) {
@@ -55,16 +84,6 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             project.tasks.withType(Jar::class.java) { jar ->
                 jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
             }
-        }
-
-        val coreMod = if (legacy) {
-            val baseProject = base?.project ?: project
-            val loadingPlugins = baseProject.extensions.getByType(SourceSetContainer::class.java)
-                .getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources.matching { it.include("coremod.txt") }
-
-            loadingPlugins.takeUnless { it.isEmpty }?.singleFile?.readText()
-        } else {
-            null
         }
 
         if (legacy) {
@@ -90,7 +109,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                         it.baseData.set(unifiedBuilds.baseProject.get().extensions.getByType(UnifiedBuildsModuleExtension::class.java))
                     }
                     it.moduleData.set(module)
-                    it.version.set(unifiedBuilds.modVersion)
+                    it.rootData.set(unifiedBuilds)
                 }
 
                 @Suppress("UnstableApiUsage")
@@ -100,6 +119,16 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                     }
                     it.from(mcModInfo.flatMap(MCModInfoTask::destinationDirectory))
                     it.dependsOn(mcModInfo)
+                }
+
+                project.configurations.all { configuration ->
+                    configuration.resolutionStrategy {
+                        it.eachDependency { dependency ->
+                            if (dependency.requested.group == "net.minecraftforge" && dependency.requested.name == "mergetool") {
+                                dependency.useVersion("0.2.3.3")
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -123,15 +152,6 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                     task.dependsOn(modsToml)
                 }
             }
-        }
-
-        val main = project.extensions.getByType(SourceSetContainer::class.java).getByName(SourceSet.MAIN_SOURCE_SET_NAME)
-        val accessTransformers = main.resources.matching {
-            it.include("META-INF/accesstransformer.cfg")
-        }
-
-        if (!accessTransformers.isEmpty) {
-            minecraft.accessTransformer(accessTransformers.singleFile)
         }
 
         val createRun = { config: RunConfig ->
@@ -166,8 +186,12 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
                 project.tasks.withType(Jar::class.java) {
                     it.applyJarDefaults(root)
-                    if (!legacy) {
-                        it.manifest { manifest ->
+                    it.manifest { manifest ->
+                        if (legacy) {
+                            if (!accessTransformers.isEmpty) {
+                                manifest.attributes(mapOf("FMLAT" to "accesstransformer.cfg"))
+                            }
+                        } else {
                             project.gradle.projectsEvaluated {
                                 if (module.info.modId.isPresent) {
                                     manifest.attributes(
@@ -201,7 +225,12 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         coreMod?.let {
             project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java) { jar ->
                 jar.manifest {
-                    it.attributes(mapOf("FMLCorePlugin" to it))
+                    it.attributes(
+                        mapOf(
+                            "FMLCorePluginContainsFMLMod" to true,
+                            "FMLCorePlugin" to it
+                        )
+                    )
                 }
             }
         }

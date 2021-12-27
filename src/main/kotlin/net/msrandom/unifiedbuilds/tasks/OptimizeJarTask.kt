@@ -3,15 +3,14 @@ package net.msrandom.unifiedbuilds.tasks
 import net.msrandom.unifiedbuilds.tasks.ProjectJarArchive.Companion.setConventions
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.Provider
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.Internal
 import proguard.gradle.ProGuardTask
+import java.io.File
 
 abstract class OptimizeJarTask : ProGuardTask(), ProjectJarArchive {
-    abstract val config: RegularFileProperty
+    abstract val configs: ConfigurableFileCollection
         @Internal get
 
     abstract val input: RegularFileProperty
@@ -27,12 +26,16 @@ abstract class OptimizeJarTask : ProGuardTask(), ProjectJarArchive {
         apply {
             setConventions()
             archiveClassifier.convention("minified")
+            configs.from(owningProject.map { it.layout.projectDirectory.file("proguard.conf") })
+
             injars(input)
             outjars(archiveFile)
-            libraryjars("${System.getProperty("java.home")}/lib/rt.jar")
-            project.configurations.named("compileClasspath").takeIf(Provider<*>::isPresent)?.let {
+
+            project.configurations.findByName("compileClasspath")?.let {
                 classpath.from(it)
             }
+
+            libraryjars("${System.getProperty("java.home")}/lib/rt.jar")
             libraryjars(classpath)
 
             keep(
@@ -44,17 +47,9 @@ abstract class OptimizeJarTask : ProGuardTask(), ProjectJarArchive {
             )
 
             keepattributes("RuntimeVisibleAnnotations,RuntimeInvisibleAnnotations")
-
             dontnote()
 
-            doFirst {
-                val conf = owningProject.map { it.rootProject.layout.projectDirectory.file("proguard.conf") }
-                config.orElse(conf)
-                    .takeIf { it.get().asFile.exists() }
-                    ?.let {
-                        configuration(it)
-                    }
-            }
+            configuration(configs.filter(File::exists))
         }
     }
 }

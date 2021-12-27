@@ -5,10 +5,10 @@ plugins {
 }
 
 val loomVersion = (findProperty("unifiedbuilds.fabric_loom.version") as? String) ?: "0.10-SNAPSHOT"
-val pluginId = "unifiedBuilds"
+val pluginId = name
 
-version = "0.1"
-group = "net.msrandom.unifiedbuilds"
+version = "0.2"
+group = "net.msrandom"
 
 System.getenv("BUILD_NUMBER")?.let { version = "$version-$it" }
 
@@ -17,7 +17,7 @@ gradlePlugin {
         id = pluginId
         version = project.version
 
-        implementationClass = "$group.UnifiedBuildsPlugin"
+        implementationClass = "$group.$pluginId.UnifiedBuildsPlugin"
     }
 }
 
