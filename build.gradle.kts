@@ -10,7 +10,7 @@ val pluginId = name
 version = "0.2"
 group = "net.msrandom"
 
-System.getenv("BUILD_NUMBER")?.let { version = "$version-$it" }
+System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
 
 gradlePlugin {
     plugins.create("unifiedBuilds") {
