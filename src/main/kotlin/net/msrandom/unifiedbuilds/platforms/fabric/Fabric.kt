@@ -14,7 +14,6 @@ import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.language.jvm.tasks.ProcessResources
-import sun.tools.jar.resources.jar
 
 class Fabric(name: String, loaderVersion: String, private val apiVersion: String) : Platform(name, loaderVersion) {
     class Entrypoint(val name: String, val points: Collection<String>) {
@@ -26,7 +25,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         super.handle(version, project, root, module, base, parent)
 
         project.apply {
-            it.plugin("fabric-loom")
+            it.plugin("fabric-loom") // Not using the type since it changes between loom versions
         }
 
         FabricMappingProvider.disableRemaps(project)
@@ -58,14 +57,15 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
                     val baseProject = root.extensions.getByType(UnifiedBuildsExtension::class.java).baseProject.get()
                     it.baseData.set(baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java))
                 }
+                val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
                 it.moduleData.set(module)
-                it.license.set(root.extensions.getByType(UnifiedBuildsExtension::class.java).license)
+                it.rootData.set(unifiedBuilds)
             }
 
             @Suppress("UnstableApiUsage")
             project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) {
                 it.dependsOn(createModJson)
-                it.from(createModJson.flatMap(FabricModJsonTask::output))
+                it.from(createModJson.flatMap(FabricModJsonTask::destinationDirectory))
             }
         } else if (base != null) {
             project.tasks.withType(Jar::class.java) { jar ->
@@ -81,7 +81,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         }
 
         project.tasks.withType(Jar::class.java).matching { it !is RemapJarTask }.all {
-            it.archiveClassifier.convention("dev")
+            it.applyJarDefaults(root)
         }
 
         remapJar.configure {

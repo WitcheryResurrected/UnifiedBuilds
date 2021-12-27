@@ -11,6 +11,7 @@ abstract class UnifiedBuildsExtension(private val project: Project) {
     /* The main project of the Jar */
     val baseProject = ObservableProperty<Project>()
 
+    abstract val modVersion: Property<String>
     abstract val license: Property<String>
 
     /* The subprojects that would be included in the Jar */

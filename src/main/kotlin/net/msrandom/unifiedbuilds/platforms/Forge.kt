@@ -7,6 +7,7 @@ import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.tasks.forge.MCModInfoTask
+import net.msrandom.unifiedbuilds.tasks.forge.ModsTomlTask
 import net.msrandom.unifiedbuilds.tasks.forge.RemapForgeArtifactTask
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
@@ -26,7 +27,6 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
         val versionParts = version.split('.')
         val subversion = versionParts[1].toInt()
-
         val legacy = subversion <= 12
 
         project.apply {
@@ -36,6 +36,26 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         val minecraft = project.extensions.getByType(UserDevExtension::class.java)
 
         project.dependencies.add("minecraft", "net.minecraftforge:forge:$version-$loaderVersion")
+
+        if (parent != null) {
+            val parentProject = parent.getProject(root)
+
+            parentProject.dependencies.add("implementation", project)
+            if (base == null) {
+                println("Found base project for forge at ${project.path}, adding as a dependency for ${parentProject.path}")
+            } else {
+                parentProject.dependencies.add(CONTAINED_DEP_CONFIGURATION, project)
+
+                // Make all modules that are not the base depend on it
+                project.dependencies.add("implementation", base.project)
+                println("Found forge module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
+            }
+        } else if (base != null) {
+            project.configurations.create(CONTAINED_DEP_CONFIGURATION)
+            project.tasks.withType(Jar::class.java) { jar ->
+                jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
+            }
+        }
 
         val coreMod = if (legacy) {
             val baseProject = base?.project ?: project
@@ -65,11 +85,12 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
             if (parent != null) {
                 val mcModInfo = project.tasks.register("createMcModInfo", MCModInfoTask::class.java) {
+                    val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
                     if (base != null) {
-                        val baseProject = root.extensions.getByType(UnifiedBuildsExtension::class.java).baseProject.get()
-                        it.baseData.set(baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java))
+                        it.baseData.set(unifiedBuilds.baseProject.get().extensions.getByType(UnifiedBuildsModuleExtension::class.java))
                     }
                     it.moduleData.set(module)
+                    it.version.set(unifiedBuilds.modVersion)
                 }
 
                 @Suppress("UnstableApiUsage")
@@ -83,6 +104,25 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             }
         } else {
             minecraft.mappings("official", version)
+
+            if (parent != null) {
+                val modsToml = project.tasks.register("createModsToml", ModsTomlTask::class.java) {
+                    val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
+                    if (base != null) {
+                        it.baseData.set(unifiedBuilds.baseProject.get().extensions.getByType(UnifiedBuildsModuleExtension::class.java))
+                    }
+                    it.moduleData.set(module)
+                    it.rootData.set(unifiedBuilds)
+                }
+
+                @Suppress("UnstableApiUsage")
+                project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) { task ->
+                    task.from(modsToml.flatMap(ModsTomlTask::destinationDirectory)) {
+                        it.into("META-INF")
+                    }
+                    task.dependsOn(modsToml)
+                }
+            }
         }
 
         val main = project.extensions.getByType(SourceSetContainer::class.java).getByName(SourceSet.MAIN_SOURCE_SET_NAME)
@@ -125,11 +165,26 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                 val jar = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)
 
                 project.tasks.withType(Jar::class.java) {
-                    it.archiveClassifier.convention("dev")
+                    it.applyJarDefaults(root)
+                    if (!legacy) {
+                        it.manifest { manifest ->
+                            project.gradle.projectsEvaluated {
+                                if (module.info.modId.isPresent) {
+                                    manifest.attributes(
+                                        mapOf(
+                                            "Implementation-Title" to module.info.modId.get(),
+                                            "Implementation-Version" to root.extensions.getByType(UnifiedBuildsExtension::class.java).modVersion.get()
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 val remapJar = project.tasks.register(REMAP_JAR_NAME, RemapForgeArtifactTask::class.java) {
                     it.setDependsOn(task.dependsOn)
+                    it.nestJars.set(legacy)
                     it.input.set(task.input)
                 }
 
@@ -148,26 +203,6 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                 jar.manifest {
                     it.attributes(mapOf("FMLCorePlugin" to it))
                 }
-            }
-        }
-
-        if (parent != null) {
-            val parentProject = parent.getProject(root)
-
-            parentProject.dependencies.add("implementation", project)
-            if (base == null) {
-                println("Found base project for forge at ${project.path}, adding as a dependency for ${parentProject.path}")
-            } else {
-                if (legacy) parentProject.dependencies.add(CONTAINED_DEP_CONFIGURATION, project)
-
-                // Make all modules that are not the base depend on it
-                project.dependencies.add("implementation", base.project)
-                println("Found forge module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
-            }
-        } else if (base != null) {
-            if (legacy) project.configurations.create(CONTAINED_DEP_CONFIGURATION)
-            project.tasks.withType(Jar::class.java) { jar ->
-                jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
             }
         }
     }

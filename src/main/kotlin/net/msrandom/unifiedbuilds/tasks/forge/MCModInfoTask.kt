@@ -20,6 +20,9 @@ abstract class MCModInfoTask : DefaultTask() {
     abstract val moduleData: Property<UnifiedBuildsModuleExtension>
         @Internal get
 
+    abstract val version: Property<String>
+        @Input get
+
     abstract val destinationDirectory: DirectoryProperty
         @Optional
         @OutputDirectory
@@ -45,7 +48,7 @@ abstract class MCModInfoTask : DefaultTask() {
         json.add(
             JsonObject().apply {
                 addProperty("modid", modInfo.modId.get())
-                addProperty("version", moduleData.get().modVersion.get())
+                addProperty("version", version.get())
                 if (modInfo.name.isPresent) addProperty("name", modInfo.name.get())
                 if (modInfo.description.isPresent) addProperty("description", modInfo.description.get())
                 if (modInfo.url.isPresent) addProperty("url", modInfo.url.get())
@@ -73,10 +76,9 @@ abstract class MCModInfoTask : DefaultTask() {
 
                 if (baseData.isPresent) {
                     val baseId = baseData.get().info.modId.get()
-                    val dependency = "$baseId@[${baseData.get().modVersion.get()},)"
                     addProperty("parent", baseId)
-                    requiredMods.add(dependency)
-                    dependants.add(dependency)
+                    requiredMods.add(baseId)
+                    dependants.add(baseId)
                 }
 
                 if (project != moduleData.get().project) {

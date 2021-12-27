@@ -1,5 +1,7 @@
 package net.msrandom.unifiedbuilds.platforms
 
+import groovyjarjarantlr.build.ANTLR.root
+import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.platforms.Platform.Companion.applyModuleNaming
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
@@ -40,12 +42,13 @@ abstract class Platform(val name: String, val loaderVersion: String) {
             }
         }
 
+        val modVersion = root.extensions.getByType(UnifiedBuildsExtension::class.java).modVersion.get()
         if (!module.named && module.project != project) {
-            module.project.applyModuleNaming(version, "", root, module)
+            module.project.applyModuleNaming(version, modVersion, "", root, module)
             module.named = true
         }
 
-        project.applyModuleNaming(version, "-$name", root, module)
+        project.applyModuleNaming(version, modVersion, "-$name", root, module)
     }
 
     protected fun addOptimizedJar(
@@ -74,12 +77,25 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         }
     }
 
+    fun Jar.applyJarDefaults(root: Project) {
+        archiveClassifier.convention("dev")
+
+        // We want to include licenses by default, mods using this plugin can manually exclude them if needed
+        from(root.layout.projectDirectory.file("LICENSE")) {
+            it.rename { name ->
+                val licenseType = root.extensions.getByType(UnifiedBuildsExtension::class.java).license.get()
+                val modName = project.extensions.getByType(BasePluginExtension::class.java).archivesName.get()
+                "${name}_${licenseType}_$modName"
+            }
+        }
+    }
+
     fun getProject(project: Project) = project.childProjects[name] ?: project
 
     companion object {
         const val REMAP_JAR_NAME = "remapJar"
 
-        fun Project.applyModuleNaming(minecraftVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
+        private fun Project.applyModuleNaming(minecraftVersion: String, modVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
             fun Project.archivesName() = extensions.getByType(BasePluginExtension::class.java).archivesName
 
             if (root == module.project) {
@@ -96,7 +112,7 @@ abstract class Platform(val name: String, val loaderVersion: String) {
                 }
             }
 
-            project.version = "$minecraftVersion-${module.modVersion.get()}$platformName"
+            project.version = "$minecraftVersion-${modVersion}$platformName"
         }
     }
 }

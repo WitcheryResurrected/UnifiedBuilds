@@ -26,7 +26,6 @@ allprojects {
 (subModules + project).forEach {
     it.run {
         unifiedModule {
-            modVersion.set("1.0")
             common.set("common")
 
             platforms {
@@ -40,6 +39,7 @@ allprojects {
 unifiedBuilds {
     minecraftVersion.set("1.16.5")
     license.set("CC-2.0")
+    modVersion.set("1.0")
 
     baseProject.set(project(":test-base"))
     modules.addAll(subModules)

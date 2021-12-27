@@ -3,6 +3,7 @@ package net.msrandom.unifiedbuilds.tasks.fabric
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.platforms.fabric.Fabric
 import org.gradle.api.DefaultTask
@@ -20,29 +21,29 @@ abstract class FabricModJsonTask : DefaultTask() {
     abstract val moduleData: Property<UnifiedBuildsModuleExtension>
         @Internal get
 
-    abstract val license: Property<String>
-        @Input get
+    abstract val rootData: Property<UnifiedBuildsExtension>
+        @Internal get
 
-    abstract val output: DirectoryProperty
+    abstract val destinationDirectory: DirectoryProperty
         @Optional
         @OutputDirectory
         get
 
     init {
         apply {
-            output.convention(project.layout.buildDirectory.dir("generated-fabric-json"))
+            destinationDirectory.convention(project.layout.buildDirectory.dir("generated-fabric-json"))
         }
     }
 
     @TaskAction
     fun makeJson() {
-        val file = output.file("fabric.mod.json").get().asFile
+        val file = destinationDirectory.file("fabric.mod.json").get().asFile
         file.parentFile.mkdirs()
         val json = JsonObject().apply {
             val modInfo = moduleData.get().info
             addProperty("schemaVersion", 1)
             addProperty("id", modInfo.modId.get())
-            addProperty("version", moduleData.get().modVersion.get())
+            addProperty("version", rootData.get().modVersion.get())
             if (modInfo.name.isPresent) addProperty("name", modInfo.name.get())
             if (modInfo.description.isPresent) addProperty("description", modInfo.description.get())
 
@@ -61,7 +62,7 @@ abstract class FabricModJsonTask : DefaultTask() {
                 )
             }
 
-            addProperty("license", license.get())
+            addProperty("license", rootData.get().license.get())
             if (modInfo.icon.isPresent) addProperty("icon", modInfo.icon.get())
 
             val resources = project.extensions.getByType(SourceSetContainer::class.java).getByName(SourceSet.MAIN_SOURCE_SET_NAME).resources
@@ -110,7 +111,7 @@ abstract class FabricModJsonTask : DefaultTask() {
                 if (suggests.size() != 0) add("suggests", suggests)
             }
             if (baseData.isPresent) {
-                depends.addProperty(baseData.get().info.modId.get(), baseData.get().modVersion.get())
+                depends.addProperty(baseData.get().info.modId.get(), "*")
             }
             add("depends", depends)
 

@@ -1,25 +1,24 @@
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-
 plugins {
     `java-gradle-plugin`
+    `maven-publish`
     kotlin("jvm") version "1.5.+"
 }
 
+val loomVersion = (findProperty("unifiedbuilds.fabric_loom.version") as? String) ?: "0.10-SNAPSHOT"
+val pluginId = "unifiedBuilds"
+
+version = "0.1"
+group = "net.msrandom.unifiedbuilds"
+
+System.getenv("BUILD_NUMBER")?.let { version = "$version-$it" }
+
 gradlePlugin {
     plugins.create("unifiedBuilds") {
-        id = "net.msrandom.unifiedbuilds"
-        version = "1.0"
+        id = pluginId
+        version = project.version
 
-        implementationClass = "net.msrandom.unifiedbuilds.UnifiedBuildsPlugin"
+        implementationClass = "$group.UnifiedBuildsPlugin"
     }
-}
-
-val loomVersion = (findProperty("unifiedbuilds.fabric_loom.version") as? String) ?: "0.10-SNAPSHOT"
-
-tasks.withType<KotlinCompile> {
-    // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
-    kotlinOptions.apiVersion = "1.4"
-    kotlinOptions.languageVersion = "1.4"
 }
 
 repositories {
@@ -32,8 +31,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib", version = "1.4.+"))
 
-    implementation(group = "com.electronwill.night-config", name = "core", version = "3.6.+")
-    implementation(group = "com.electronwill.night-config", name = "toml", version = "3.6.+")
+    implementation(group = "com.moandjiezana.toml", name = "toml4j", version = "0.7.+")
     implementation(group = "com.google.code.gson", name = "gson", version = "2.8.+")
     implementation(group = "org.zeroturnaround", name = "zt-zip", version = "1.+")
 
@@ -49,6 +47,10 @@ dependencies {
 }
 
 tasks.compileKotlin {
+    // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
+    kotlinOptions.apiVersion = "1.4"
+    kotlinOptions.languageVersion = "1.4"
+
     exclude {
         val endIndex = loomVersion.indexOf('.', 2).takeIf { i -> i != -1 } ?: loomVersion.indexOf('-', 2)
         val numberString = if (endIndex == -1) {
@@ -67,7 +69,49 @@ tasks.compileKotlin {
     }
 }
 
-tasks.withType<Test> {
+tasks.test {
     dependsOn("pluginUnderTestMetadata")
     useJUnitPlatform()
+}
+
+val sourcesJar by tasks.registering(Jar::class) {
+    archiveClassifier.set("sources")
+    from(sourceSets.main.map(SourceSet::getAllSource))
+}
+
+artifacts {
+    archives(sourcesJar)
+}
+
+publishing {
+    if (hasProperty("maven_username") && hasProperty("maven_password")) {
+        publications {
+            create<MavenPublication>("maven") {
+                groupId = group.toString()
+                artifactId = pluginId
+                version = project.version.toString()
+
+                artifact(tasks.jar)
+                artifact(sourcesJar)
+            }
+
+            create<MavenPublication>("plugin") {
+                groupId = pluginId
+                artifactId = "$pluginId.gradle.plugin"
+                version = project.version.toString()
+
+                artifact(tasks.jar)
+            }
+        }
+
+        repositories {
+            maven {
+                url = uri("https://maven.msrandom.net/repository/root/")
+                credentials {
+                    username = property("maven_username").toString()
+                    password = property("maven_password").toString()
+                }
+            }
+        }
+    }
 }
