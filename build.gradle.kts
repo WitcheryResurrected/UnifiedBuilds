@@ -12,12 +12,7 @@ val pluginId = name
 version = "0.2"
 group = "net.msrandom"
 
-// TODO remove, only for testing env variables
-System.getenv().forEach { (key, value) ->
-    if ("GITHUB" in key) println("$key: $value")
-}
-
-System.getenv("GITHUB_RUN_ID")?.let { version = "$version-$it" }
+System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
 
 gradlePlugin {
     plugins.create("unifiedBuilds") {
@@ -97,32 +92,34 @@ artifacts {
 }
 
 publishing {
-    if (hasProperty("maven_username") && hasProperty("maven_password")) {
-        publications {
-            create<MavenPublication>("maven") {
-                groupId = group.toString()
-                artifactId = pluginId
-                version = project.version.toString()
+    System.getenv("MAVEN_USERNAME")?.let { mavenUsername ->
+        System.getenv("MAVEN_PASSWORD")?.let { mavenPassword ->
+            publications {
+                create<MavenPublication>("maven") {
+                    groupId = group.toString()
+                    artifactId = pluginId
+                    version = project.version.toString()
 
-                artifact(tasks.jar)
-                artifact(sourcesJar)
+                    artifact(tasks.jar)
+                    artifact(sourcesJar)
+                }
+
+                create<MavenPublication>("plugin") {
+                    groupId = pluginId
+                    artifactId = "$pluginId.gradle.plugin"
+                    version = project.version.toString()
+
+                    artifact(tasks.jar)
+                }
             }
 
-            create<MavenPublication>("plugin") {
-                groupId = pluginId
-                artifactId = "$pluginId.gradle.plugin"
-                version = project.version.toString()
-
-                artifact(tasks.jar)
-            }
-        }
-
-        repositories {
-            maven {
-                url = uri("https://maven.msrandom.net/repository/root/")
-                credentials {
-                    username = property("maven_username").toString()
-                    password = property("maven_password").toString()
+            repositories {
+                maven {
+                    url = uri("https://maven.msrandom.net/repository/root/")
+                    credentials {
+                        username = mavenUsername
+                        password = mavenPassword
+                    }
                 }
             }
         }
