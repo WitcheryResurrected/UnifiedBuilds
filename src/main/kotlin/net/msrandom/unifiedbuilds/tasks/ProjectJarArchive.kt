@@ -47,6 +47,7 @@ interface ProjectJarArchive {
         @Input
         get
 
+    @Internal
     fun getProject(): Project
 
     companion object {

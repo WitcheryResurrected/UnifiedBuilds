@@ -12,7 +12,12 @@ val pluginId = name
 version = "0.2"
 group = "net.msrandom"
 
-System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
+// TODO remove, only for testing env variables
+System.getenv().forEach { (key, value) ->
+    if ("GITHUB" in key) println("$key: $value")
+}
+
+System.getenv("GITHUB_RUN_ID")?.let { version = "$version-$it" }
 
 gradlePlugin {
     plugins.create("unifiedBuilds") {
