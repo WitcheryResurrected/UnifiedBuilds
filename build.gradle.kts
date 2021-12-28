@@ -72,6 +72,10 @@ tasks.compileKotlin {
 tasks.test {
     dependsOn("pluginUnderTestMetadata")
     useJUnitPlatform()
+
+    testLogging {
+        showStandardStreams = true
+    }
 }
 
 val sourcesJar by tasks.registering(Jar::class) {

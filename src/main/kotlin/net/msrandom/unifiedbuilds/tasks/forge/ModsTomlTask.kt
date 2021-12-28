@@ -33,18 +33,9 @@ abstract class ModsTomlTask : DefaultTask() {
     @TaskAction
     fun makeToml() {
         val output = destinationDirectory.file("mods.toml").get().asFile
-        val platform = moduleData.get().platforms.firstOrNull { it.name == project.name }
-            ?: moduleData.get().platforms.first()
+        val platform = moduleData.get().platforms.firstOrNull { it.name == project.name } ?: moduleData.get().platforms.first()
         val loaderVersion = platform.loaderVersion.split('.')[0]
-
         val modInfo = moduleData.get().info
-        val mod = mutableMapOf("modId" to modInfo.modId.get(), "version" to "\${file.jarVersion}")
-        if (modInfo.name.isPresent) mod["displayName"] = modInfo.name.get()
-        if (modInfo.description.isPresent) mod["description"] = modInfo.description.get()
-        if (modInfo.icon.isPresent) mod["logoFile"] = modInfo.icon.get()
-        if (modInfo.url.isPresent) mod["displayURL"] = modInfo.url.get()
-        if (modInfo.contributors.get().isNotEmpty()) mod["credits"] = "Contributors: ${modInfo.contributors.get().joinToString()}"
-        if (modInfo.authors.get().isNotEmpty()) mod["authors"] = modInfo.authors.get().joinToString()
 
         val dependencies = mutableListOf(
             mapOf(
@@ -77,16 +68,29 @@ abstract class ModsTomlTask : DefaultTask() {
             }
         )
 
-        val toml = mapOf(
+        val toml = mutableMapOf(
             "modLoader" to "javafml",
             "loaderVersion" to "[$loaderVersion,)",
             "license" to rootData.get().license.get(),
-            "logoBlur" to false,
-            "mods" to arrayOf(mod),
             "dependencies" to mapOf(
                 modInfo.modId.get() to dependencies
             )
         )
+
+        val mod = mutableMapOf("modId" to modInfo.modId.get(), "version" to "\${file.jarVersion}")
+        if (modInfo.name.isPresent) mod["displayName"] = modInfo.name.get()
+        if (modInfo.description.isPresent) mod["description"] = modInfo.description.get()
+
+        if (modInfo.icon.isPresent) {
+            mod["logoFile"] = modInfo.icon.get()
+            toml["logoBlur"] = false
+        }
+
+        if (modInfo.url.isPresent) mod["displayURL"] = modInfo.url.get()
+        if (modInfo.contributors.get().isNotEmpty()) mod["credits"] = "Contributors: ${modInfo.contributors.get().joinToString()}"
+        if (modInfo.authors.get().isNotEmpty()) mod["authors"] = modInfo.authors.get().joinToString()
+
+        toml["mods"] = arrayOf(mod)
 
         TomlWriter().write(toml, output.outputStream())
     }
