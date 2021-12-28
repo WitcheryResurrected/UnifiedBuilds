@@ -10,10 +10,8 @@ import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.fabric.FabricModJsonTask
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.provider.Property
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
@@ -97,9 +95,9 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         project.artifacts.add("archives", remapJar)
     }
 
-    override fun wrapRemap(task: DefaultTask): RemapTask {
-        val remapJar = task as RemapJarTask
-        return object : RemapTask {
+    override fun DefaultTask.remap(action: (RemapTask) -> Unit) {
+        val remapJar = this as RemapJarTask
+        action(object : RemapTask {
             override fun getProject() = remapJar.project
             override fun getInput() = remapJar.input
             override val archiveBaseName = remapJar.archiveBaseName
@@ -110,7 +108,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             override val destinationDirectory = remapJar.destinationDirectory
             override val archiveAppendix = remapJar.archiveAppendix
             override val archiveExtension = remapJar.archiveExtension
-        }
+        })
     }
 
     class Entrypoint(val name: String, val points: Collection<String>) {

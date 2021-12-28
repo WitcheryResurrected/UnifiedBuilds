@@ -1,14 +1,12 @@
 package net.msrandom.unifiedbuilds.tasks
 
 import org.gradle.api.Project
-import org.gradle.api.Task
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.jvm.tasks.Jar
-import org.gradle.util.GUtil
 
 interface ProjectJarArchive {
     val archiveFileName: Property<String>
