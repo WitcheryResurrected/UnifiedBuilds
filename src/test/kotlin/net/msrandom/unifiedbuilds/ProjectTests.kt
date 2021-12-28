@@ -5,25 +5,29 @@ import org.junit.jupiter.api.Test
 import org.junit.platform.commons.annotation.Testable
 import java.io.File
 
-@Testable
-class ProjectTests {
-    @Test
-    fun `Legacy Mod Test`() = test("legacy")
+private fun test(name: String) {
+    println("Building test project '$name'...")
+    GradleRunner.create()
+        .withProjectDir(File("src/test/resources/projects/$name"))
+        .withPluginClasspath()
+        .withArguments("build", "-s")
+        .forwardOutput()
+        .withDebug(true)
+        .build()
 
-    @Test
-    fun `Modern Mod Test`() = test("modern")
-
-    private fun test(name: String) {
-        println("Building test project '$name'...")
-        GradleRunner.create()
-            .withProjectDir(File("src/test/resources/projects/$name"))
-            .withPluginClasspath()
-            .withArguments("build", "-s")
-            .forwardOutput()
-            .withDebug(true)
-            .build()
-
-        println("Built test project '$name' successfully.")
-        println()
-    }
+    println("Built test project '$name' successfully.")
+    println()
 }
+
+@Testable
+class LegacyTest {
+    @Test
+    fun `Test Mods`() = test("legacy")
+}
+
+@Testable
+class ModernTest {
+    @Test
+    fun `Test Mods`() = test("modern")
+}
+

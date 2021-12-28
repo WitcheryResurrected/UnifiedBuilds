@@ -20,12 +20,7 @@ jobs:
         java-version: '8'
         distribution: 'adopt'
 
-    - name: Run tests
+    - name: Test 1.12.2 Setups
       uses: gradle/gradle-build-action@4137be6a8bf7d7133955359dbd952c0ca73b1021
       with:
-        arguments: test
-
-    - name: Publish to Maven
-      uses: gradle/gradle-build-action@4137be6a8bf7d7133955359dbd952c0ca73b1021
-      with:
-        arguments: publish
+        arguments: test --tests net.msrandom.unifiedbuilds.LegacyTest

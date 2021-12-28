@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
     `java-gradle-plugin`
     `maven-publish`
@@ -46,11 +48,13 @@ dependencies {
     testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.8.+")
 }
 
-tasks.compileKotlin {
+tasks.withType<KotlinCompile> {
     // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
     kotlinOptions.apiVersion = "1.4"
     kotlinOptions.languageVersion = "1.4"
+}
 
+tasks.compileKotlin {
     exclude {
         val endIndex = loomVersion.indexOf('.', 2).takeIf { i -> i != -1 } ?: loomVersion.indexOf('-', 2)
         val numberString = if (endIndex == -1) {
