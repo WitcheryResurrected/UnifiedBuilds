@@ -1,5 +1,6 @@
 package net.msrandom.unifiedbuilds.tasks
 
+import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.RegularFileProperty
@@ -7,9 +8,9 @@ import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
 import org.gradle.jvm.tasks.Jar
-import org.gradle.util.internal.GUtil
+import org.gradle.util.GUtil
 
-interface ProjectJarArchive : Task {
+interface ProjectJarArchive {
     val archiveFileName: Property<String>
         @Optional
         @Input
@@ -46,15 +47,17 @@ interface ProjectJarArchive : Task {
         @Input
         get
 
+    fun getProject(): Project
+
     companion object {
         fun ProjectJarArchive.setConventions() {
             archiveFileName.convention(
-                project.provider {
+                getProject().provider {
                     // [baseName]-[appendix]-[version]-[classifier].[extension], copied from AbstractArchiveTask
-                    var name = GUtil.elvis(archiveBaseName.orNull, "")
+                    var name = archiveBaseName.orNull.takeIf { !it.isNullOrEmpty() } ?: ""
 
-                    fun maybe(prefix: String?, value: String?) = if (GUtil.isTrue(value)) {
-                        if (GUtil.isTrue(prefix)) {
+                    fun maybe(prefix: String?, value: String?) = if (!value.isNullOrEmpty()) {
+                        if (!prefix.isNullOrEmpty()) {
                             "-$value"
                         } else {
                             value
@@ -67,15 +70,15 @@ interface ProjectJarArchive : Task {
                     name += maybe(name, archiveVersion.get())
                     name += maybe(name, archiveClassifier.orNull)
                     val extension = archiveExtension.orNull
-                    name += if (GUtil.isTrue(extension)) ".$extension" else ""
+                    name += if (!extension.isNullOrEmpty()) ".$extension" else ""
                     name
                 }
             )
 
-            val base = project.extensions.getByType(BasePluginExtension::class.java)
+            val base = getProject().extensions.getByType(BasePluginExtension::class.java)
             destinationDirectory.convention(base.libsDirectory)
             archiveFile.convention(destinationDirectory.file(archiveFileName))
-            archiveVersion.convention(project.provider { project.version.toString() })
+            archiveVersion.convention(getProject().provider { getProject().version.toString() })
             archiveBaseName.convention(base.archivesName)
             archiveExtension.set(Jar.DEFAULT_EXTENSION)
         }

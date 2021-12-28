@@ -6,14 +6,13 @@ import net.minecraftforge.gradle.mcp.tasks.GenerateSRG
 import net.minecraftforge.gradle.patcher.tasks.ReobfuscateJar
 import net.msrandom.unifiedbuilds.platforms.Forge
 import net.msrandom.unifiedbuilds.platforms.Platform
-import net.msrandom.unifiedbuilds.tasks.ProjectJarArchive
 import net.msrandom.unifiedbuilds.tasks.ProjectJarArchive.Companion.setConventions
+import net.msrandom.unifiedbuilds.tasks.RemapTask
 import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.file.DuplicatesStrategy
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
-import org.gradle.internal.impldep.org.tomlj.internal.TomlParser
 import org.zeroturnaround.zip.FileSource
 import org.zeroturnaround.zip.ZipUtil
 import org.zeroturnaround.zip.commons.FileUtils
@@ -30,7 +29,7 @@ private typealias MergeAction = (existing: InputStream, overriding: InputStream)
 
 // Remap and include contained deps, similarly to the fabric RemapJarTask
 @Suppress("UNCHECKED_CAST")
-abstract class RemapForgeArtifactTask : ReobfuscateJar(), ProjectJarArchive {
+abstract class RemapForgeArtifactTask : ReobfuscateJar(), RemapTask {
     private val mergeActions = hashMapOf<String, MergeAction>()
 
     val duplicatesStrategy = DuplicatesStrategy.FAIL

@@ -5,6 +5,8 @@ import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.platforms.Platform.Companion.applyModuleNaming
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
+import net.msrandom.unifiedbuilds.tasks.RemapTask
+import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.file.RegularFile
@@ -18,7 +20,9 @@ import org.gradle.jvm.tasks.Jar
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 abstract class Platform(val name: String, val loaderVersion: String) {
-    open fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
+    abstract val remapTaskType: Class<out DefaultTask>
+
+    internal open fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME) { sourceSet ->
             if (module.common.isPresent) {
                 val common = module.project.layout.projectDirectory.dir(module.common.get())
@@ -50,6 +54,8 @@ abstract class Platform(val name: String, val loaderVersion: String) {
 
         project.applyModuleNaming(version, modVersion, "-$name", root, module)
     }
+
+    abstract fun wrapRemap(task: DefaultTask): RemapTask
 
     protected fun addOptimizedJar(
         project: Project,

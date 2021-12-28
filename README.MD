@@ -1,6 +1,6 @@
 # UnifiedBuilds
 
-Helper Gradle plugin with the goal of wrapping Forge Gradle and Loom into easy to use, modular APIs.
+Helper Gradle plugin with the goal of wrapping Forge Gradle and Loom into an easy-to-use modular APIs.
 
 ## Current features:
 * Minifying Jars by using proguard

@@ -6,9 +6,11 @@ import net.minecraftforge.gradle.userdev.UserDevPlugin
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.forge.MCModInfoTask
 import net.msrandom.unifiedbuilds.tasks.forge.ModsTomlTask
 import net.msrandom.unifiedbuilds.tasks.forge.RemapForgeArtifactTask
+import org.gradle.api.DefaultTask
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
@@ -22,6 +24,9 @@ import wtf.gofancy.fancygradle.FancyExtension
 import wtf.gofancy.fancygradle.FancyGradle
 
 class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion) {
+    override val remapTaskType: Class<out DefaultTask>
+        get() = RemapForgeArtifactTask::class.java
+
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         super.handle(version, project, root, module, base, parent)
 
@@ -235,6 +240,8 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             }
         }
     }
+
+    override fun wrapRemap(task: DefaultTask) = task as RemapForgeArtifactTask
 
     companion object {
         const val CONTAINED_DEP_CONFIGURATION = "containedDep"
