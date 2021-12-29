@@ -47,11 +47,15 @@ dependencies {
     testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.8.+")
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
 tasks.withType<KotlinCompile> {
     // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
     kotlinOptions.apiVersion = "1.4"
     kotlinOptions.languageVersion = "1.4"
-    kotlinOptions.jvmTarget = JavaVersion.current().toString()
 }
 
 tasks.test {
