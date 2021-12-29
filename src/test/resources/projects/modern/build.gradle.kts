@@ -1,8 +1,8 @@
 import net.msrandom.unifiedbuilds.UnifiedBuildsPlugin
-import net.msrandom.unifiedbuilds.platforms.fabric.Fabric
+import net.msrandom.unifiedbuilds.platforms.Fabric
 import net.msrandom.unifiedbuilds.platforms.Forge
 import org.gradle.api.JavaVersion
-import org.gradle.api.plugins.JavaPlugin
+import org.gradle.api.tasks.compile.JavaCompile
 
 plugins {
     id("unifiedbuilds") version "1.+"

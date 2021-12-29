@@ -6,10 +6,9 @@ plugins {
     kotlin("jvm") version "1.5.+"
 }
 
-val loomVersion = (findProperty("unifiedbuilds.fabric_loom.version") as? String) ?: "0.10-SNAPSHOT"
 val pluginId = name
 
-version = "0.3"
+version = "0.4"
 group = "net.msrandom"
 
 System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
@@ -39,9 +38,9 @@ dependencies {
 
     implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
 
-    implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = (findProperty("unifiedbuilds.forge_gradle.version") as? String) ?: "5.+")
+    implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = "5.+")
     implementation(group = "wtf.gofancy.fancygradle", name = "wtf.gofancy.fancygradle.gradle.plugin", version = "1.+")
-    implementation(group = "net.fabricmc", name = "fabric-loom", version = loomVersion)
+    implementation(group = "net.fabricmc", name = "fabric-loom", version = "0.10-SNAPSHOT")
 
     testImplementation(gradleTestKit())
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "5.8.+")
@@ -52,25 +51,7 @@ tasks.withType<KotlinCompile> {
     // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
     kotlinOptions.apiVersion = "1.4"
     kotlinOptions.languageVersion = "1.4"
-}
-
-tasks.compileKotlin {
-    exclude {
-        val endIndex = loomVersion.indexOf('.', 2).takeIf { i -> i != -1 } ?: loomVersion.indexOf('-', 2)
-        val numberString = if (endIndex == -1) {
-            loomVersion.substring(2)
-        } else {
-            loomVersion.substring(2, endIndex)
-        }
-
-        val version = numberString.toInt()
-
-        if (version >= 9) {
-            it.name.contains("FabricLegacyMappingProvider")
-        } else {
-            it.name.contains("FabricModernMappingProvider")
-        }
-    }
+    kotlinOptions.jvmTarget = JavaVersion.current().toString()
 }
 
 tasks.test {

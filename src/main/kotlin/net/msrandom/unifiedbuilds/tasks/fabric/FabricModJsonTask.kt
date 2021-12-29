@@ -5,7 +5,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
-import net.msrandom.unifiedbuilds.platforms.fabric.Fabric
+import net.msrandom.unifiedbuilds.platforms.Fabric
 import org.gradle.api.DefaultTask
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.file.DirectoryProperty

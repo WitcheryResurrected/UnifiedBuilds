@@ -1,11 +1,11 @@
-package net.msrandom.unifiedbuilds.platforms.fabric
+package net.msrandom.unifiedbuilds.platforms
 
+import net.fabricmc.loom.api.LoomGradleExtensionAPI
+import net.fabricmc.loom.bootstrap.LoomGradlePluginBootstrap
 import net.fabricmc.loom.task.RemapJarTask
 import net.fabricmc.loom.util.Constants
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
-import net.msrandom.unifiedbuilds.platforms.Platform
-import net.msrandom.unifiedbuilds.platforms.ProjectPlatform
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.fabric.FabricModJsonTask
@@ -13,8 +13,6 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.Project
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.tasks.SourceSet
-import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
 import org.gradle.language.base.plugins.LifecycleBasePlugin
 import org.gradle.language.jvm.tasks.ProcessResources
@@ -27,13 +25,14 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         super.handle(version, project, root, module, base, parent)
 
         project.apply {
-            it.plugin("fabric-loom") // Not using the type since it changes between loom versions
+            it.plugin(LoomGradlePluginBootstrap::class.java)
         }
 
-        FabricMappingProvider.disableRemaps(project)
+        val loom = project.extensions.getByType(LoomGradleExtensionAPI::class.java)
+        loom.remapArchives.set(false)
 
         project.dependencies.add(Constants.Configurations.MINECRAFT, "com.mojang:minecraft:$version")
-        project.dependencies.add(Constants.Configurations.MAPPINGS, FabricMappingProvider.getDependency(project))
+        project.dependencies.add(Constants.Configurations.MAPPINGS, loom.officialMojangMappings())
         project.dependencies.add("modImplementation", "net.fabricmc:fabric-loader:$loaderVersion")
         project.dependencies.add("modImplementation", "net.fabricmc.fabric-api:fabric-api:$apiVersion")
 
@@ -41,7 +40,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             val parentProject = parent.getProject(root)
             project.extensions.add("fabricEntrypoints", project.container(Entrypoint::class.java))
 
-            parentProject.dependencies.add("implementation", project)
+            parentProject.dependencies.add("runtimeOnly", project)
             if (base == null) {
                 // If this is the base, then we simply want the parent to depend on it, not include it
                 println("Found base project for fabric at ${project.path}, adding as a dependency for ${parentProject.path}")
@@ -50,7 +49,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
                 parentProject.dependencies.add(Constants.Configurations.INCLUDE, project)
 
                 // Make all modules that are not the base depend on it
-                project.dependencies.add("implementation", base.project)
+                project.dependencies.add("api", base.project)
                 println("Found fabric module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
             }
 
@@ -94,7 +93,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             it.owningProject.set(root)
         }
 
-        addOptimizedJar(project, root, jar, remapJar, parent != null) { remapJar.get().input }
+        addOptimizedJar(project, jar, remapJar) { remapJar.get().input }
         project.artifacts.add("archives", remapJar)
     }
 

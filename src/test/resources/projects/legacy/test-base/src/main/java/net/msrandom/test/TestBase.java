@@ -9,4 +9,8 @@ public class TestBase {
     public void preInit(FMLPreInitializationEvent event) {
         System.out.println("Printing from Test Base");
     }
+
+    public static String someImportantMessage() {
+        return "Text";
+    }
 }

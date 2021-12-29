@@ -7,6 +7,6 @@ import net.minecraftforge.fml.common.Mod;
 public class TestModule {
     @Mod.EventHandler
     public void preInit(FMLPreInitializationEvent event) {
-        System.out.println("Printing from Test Module");
+        System.out.printf("Printing from Test Module, with message from Test Base: %s\n", TestBase.someImportantMessage());
     }
 }

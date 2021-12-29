@@ -10,6 +10,7 @@ import org.gradle.api.Task
 import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.plugins.BasePluginExtension
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
@@ -57,10 +58,8 @@ abstract class Platform(val name: String, val loaderVersion: String) {
 
     protected fun addOptimizedJar(
         project: Project,
-        root: Project,
         jar: TaskProvider<out Jar>,
         remapJar: TaskProvider<out Task>,
-        warn: Boolean,
         remapInput: () -> Property<RegularFile>
     ) {
         val optimizeJar = project.tasks.register("optimizeJar", OptimizeJarTask::class.java) {
@@ -69,10 +68,6 @@ abstract class Platform(val name: String, val loaderVersion: String) {
 
             remapInput().set(it.archiveFile)
             it.finalizedBy(remapJar)
-
-            if (!warn) {
-                it.dontwarn()
-            }
         }
 
         project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
@@ -99,9 +94,7 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         }
 
         tasks.withType(OptimizeJarTask::class.java) {
-            it.classpath.from(base.configurations.named("compileClasspath"))
-            it.dontwarn()
-            it.ignorewarnings()
+            it.classpath.from(base.configurations.named(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME))
         }
     }
 

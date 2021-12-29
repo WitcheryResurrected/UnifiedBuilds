@@ -52,9 +52,11 @@ class UnifiedBuildsPlugin : Plugin<Project> {
                             platform.handle(version, currentProject, this, data, baseProjectPlatform, rootPlatform)
                         }
 
-                        parentProject.tasks.all {
-                            currentProject.tasks.matching { task -> task.name == it.name }.all { task ->
-                                it.dependsOn(task)
+                        gradle.projectsEvaluated {
+                            parentProject.tasks.all {
+                                currentProject.tasks.matching { task -> task.name == it.name }.all { task ->
+                                    it.dependsOn(task)
+                                }
                             }
                         }
                     }

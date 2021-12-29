@@ -1,5 +1,6 @@
 package net.msrandom.unifiedbuilds.platforms
 
+import net.minecraftforge.gradle.common.util.MojangLicenseHelper
 import net.minecraftforge.gradle.common.util.RunConfig
 import net.minecraftforge.gradle.userdev.UserDevExtension
 import net.minecraftforge.gradle.userdev.UserDevPlugin
@@ -65,7 +66,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         if (parent != null) {
             val parentProject = parent.getProject(root)
 
-            parentProject.dependencies.add("implementation", project)
+            parentProject.dependencies.add("runtimeOnly", project)
             if (!accessTransformers.isEmpty) {
                 parentProject.extensions.configure(UserDevExtension::class.java) {
                     it.accessTransformer(accessTransformers.singleFile)
@@ -136,6 +137,9 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                 }
             }
         } else {
+            project.afterEvaluate {
+                MojangLicenseHelper.hide(project, "official", version)
+            }
             minecraft.mappings("official", version)
 
             if (parent != null) {
@@ -223,7 +227,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                     it.owningProject.set(root)
                 }
 
-                addOptimizedJar(project, root, jar, remapJar, parent != null) { remapJar.get().input }
+                addOptimizedJar(project, jar, remapJar) { remapJar.get().input }
 
                 project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
                     it.dependsOn(remapJar)

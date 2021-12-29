@@ -1,9 +1,11 @@
 package net.msrandom.unifiedbuilds.tasks
 
 import net.msrandom.unifiedbuilds.tasks.ProjectJarArchive.Companion.setConventions
+import org.gradle.api.JavaVersion
 import org.gradle.api.Project
 import org.gradle.api.file.ConfigurableFileCollection
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Internal
 import proguard.gradle.ProGuardTask
@@ -31,11 +33,16 @@ abstract class OptimizeJarTask : ProGuardTask(), ProjectJarArchive {
             injars(input)
             outjars(archiveFile)
 
-            project.configurations.findByName("compileClasspath")?.let {
-                classpath.from(it)
+            project.configurations.findByName(JavaPlugin.COMPILE_CLASSPATH_CONFIGURATION_NAME)?.let { compileClasspath ->
+                classpath.from(compileClasspath)
             }
 
-            libraryjars("${System.getProperty("java.home")}/lib/rt.jar")
+            if (JavaVersion.current().isJava9Compatible) {
+                libraryjars("${System.getProperty("java.home")}/jmods")
+            } else {
+                libraryjars("${System.getProperty("java.home")}/lib/rt.jar")
+            }
+
             libraryjars(classpath)
 
             keep(
