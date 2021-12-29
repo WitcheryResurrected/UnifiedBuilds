@@ -1,4 +1,4 @@
-name: Test project and publish to maven
+name: Test 1.12.2(legacy) Setups
 
 on:
   push:

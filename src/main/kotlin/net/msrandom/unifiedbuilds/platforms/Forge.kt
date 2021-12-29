@@ -6,6 +6,7 @@ import net.minecraftforge.gradle.userdev.UserDevPlugin
 import net.minecraftforge.gradle.userdev.tasks.RenameJarInPlace
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.forge.MCModInfoTask
 import net.msrandom.unifiedbuilds.tasks.forge.ModsTomlTask
@@ -88,6 +89,9 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             project.configurations.create(CONTAINED_DEP_CONFIGURATION)
             project.tasks.withType(Jar::class.java) { jar ->
                 jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
+            }
+            project.tasks.withType(OptimizeJarTask::class.java) {
+                it.classpath.from(base.project.configurations.named("compileClasspath"))
             }
         }
 

@@ -1,10 +1,7 @@
-name: Test project and publish to maven
+name: Publish to maven
 
 on:
   push:
-    branches: [ main ]
-
-  pull_request:
     branches: [ main ]
 
 jobs:

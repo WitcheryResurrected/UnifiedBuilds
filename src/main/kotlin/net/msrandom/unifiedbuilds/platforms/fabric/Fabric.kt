@@ -6,6 +6,7 @@ import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.platforms.Platform
 import net.msrandom.unifiedbuilds.platforms.ProjectPlatform
+import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.fabric.FabricModJsonTask
 import org.gradle.api.DefaultTask
@@ -71,6 +72,9 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         } else if (base != null) {
             project.tasks.withType(Jar::class.java) { jar ->
                 jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
+            }
+            project.tasks.withType(OptimizeJarTask::class.java) {
+                it.classpath.from(base.project.configurations.named("compileClasspath"))
             }
         }
 

@@ -3,7 +3,6 @@ package net.msrandom.unifiedbuilds.platforms
 import groovyjarjarantlr.build.ANTLR.root
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
-import net.msrandom.unifiedbuilds.platforms.Platform.Companion.applyModuleNaming
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import org.gradle.api.DefaultTask
