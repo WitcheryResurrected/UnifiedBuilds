@@ -1,5 +1,6 @@
 import net.msrandom.unifiedbuilds.UnifiedBuildsPlugin
 import net.msrandom.unifiedbuilds.platforms.Forge
+import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import org.gradle.api.JavaVersion
 import org.gradle.api.plugins.JavaPlugin
 

@@ -92,6 +92,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             }
             project.tasks.withType(OptimizeJarTask::class.java) {
                 it.classpath.from(base.project.configurations.named("compileClasspath"))
+                it.dontwarn()
             }
         }
 
@@ -217,8 +218,15 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
                 val remapJar = project.tasks.register(REMAP_JAR_NAME, RemapForgeArtifactTask::class.java) {
                     it.setDependsOn(task.dependsOn)
-                    it.nestJars.set(legacy)
                     it.input.set(task.input)
+                }
+
+                project.tasks.withType(RemapForgeArtifactTask::class.java) {
+                    it.nestJars.set(legacy)
+                }
+
+                project.tasks.withType(OptimizeJarTask::class.java) {
+                    it.owningProject.set(root)
                 }
 
                 addOptimizedJar(project, root, jar, remapJar, parent != null) { remapJar.get().input }

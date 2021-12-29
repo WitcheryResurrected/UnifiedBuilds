@@ -1,6 +1,5 @@
 package net.msrandom.unifiedbuilds.platforms
 
-import groovyjarjarantlr.build.ANTLR.root
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
@@ -67,7 +66,6 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         val optimizeJar = project.tasks.register("optimizeJar", OptimizeJarTask::class.java) {
             it.dependsOn(jar)
             it.input.set(jar.flatMap(Jar::getArchiveFile))
-            it.owningProject.set(root)
 
             remapInput().set(it.archiveFile)
             it.finalizedBy(remapJar)

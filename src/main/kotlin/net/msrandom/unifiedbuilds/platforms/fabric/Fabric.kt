@@ -75,6 +75,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             }
             project.tasks.withType(OptimizeJarTask::class.java) {
                 it.classpath.from(base.project.configurations.named("compileClasspath"))
+                it.dontwarn()
             }
         }
 
@@ -93,6 +94,10 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             it.dependsOn(jar)
             it.input.set(jar.flatMap(Jar::getArchiveFile))
             it.addNestedDependencies.set(true)
+        }
+
+        project.tasks.withType(OptimizeJarTask::class.java) {
+            it.owningProject.set(root)
         }
 
         addOptimizedJar(project, root, jar, remapJar, parent != null) { remapJar.get().input }
