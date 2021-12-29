@@ -239,8 +239,8 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
         coreMod?.let {
             project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java) { jar ->
-                jar.manifest {
-                    it.attributes(
+                jar.manifest { manifest ->
+                    manifest.attributes(
                         mapOf(
                             "FMLCorePluginContainsFMLMod" to true,
                             "FMLCorePlugin" to it
