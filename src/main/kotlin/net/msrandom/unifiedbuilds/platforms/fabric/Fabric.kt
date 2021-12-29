@@ -70,13 +70,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
                 it.from(createModJson.flatMap(FabricModJsonTask::destinationDirectory))
             }
         } else if (base != null) {
-            project.tasks.withType(Jar::class.java) { jar ->
-                jar.from(base.project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
-            }
-            project.tasks.withType(OptimizeJarTask::class.java) {
-                it.classpath.from(base.project.configurations.named("compileClasspath"))
-                it.dontwarn()
-            }
+            project.applyTaskFixes(base.project)
         }
 
         val remapJar = project.tasks.named(REMAP_JAR_NAME, RemapJarTask::class.java)

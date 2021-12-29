@@ -93,6 +93,18 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         }
     }
 
+    protected fun Project.applyTaskFixes(base: Project) {
+        tasks.withType(Jar::class.java) { jar ->
+            jar.from(base.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME).map(SourceSet::getOutput))
+        }
+
+        tasks.withType(OptimizeJarTask::class.java) {
+            it.classpath.from(base.configurations.named("compileClasspath"))
+            it.dontwarn()
+            it.ignorewarnings()
+        }
+    }
+
     fun getProject(project: Project) = project.childProjects[name] ?: project
 
     companion object {

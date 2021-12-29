@@ -9,7 +9,7 @@ plugins {
 val loomVersion = (findProperty("unifiedbuilds.fabric_loom.version") as? String) ?: "0.10-SNAPSHOT"
 val pluginId = name
 
-version = "0.2"
+version = "0.3"
 group = "net.msrandom"
 
 System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
