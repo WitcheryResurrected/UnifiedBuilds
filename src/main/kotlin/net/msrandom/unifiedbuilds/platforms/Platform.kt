@@ -21,6 +21,8 @@ import org.gradle.language.base.plugins.LifecycleBasePlugin
 abstract class Platform(val name: String, val loaderVersion: String) {
     abstract val remapTaskType: Class<out DefaultTask>
 
+    abstract val DefaultTask.remap: RemapTask
+
     internal open fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME) { sourceSet ->
             if (module.common.isPresent) {
@@ -54,7 +56,7 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         project.applyModuleNaming(version, modVersion, "-$name", root, module)
     }
 
-    abstract fun <R> DefaultTask.remap(action: RemapTask.() -> R): R
+    fun DefaultTask.remap(action: RemapTask.() -> Unit) = remap.action()
 
     protected fun addOptimizedJar(
         project: Project,
@@ -98,6 +100,7 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         }
     }
 
+    fun Project.withProject(action: Project.() -> Unit) = getProject(project).action()
     fun getProject(project: Project) = project.childProjects[name] ?: project
 
     companion object {

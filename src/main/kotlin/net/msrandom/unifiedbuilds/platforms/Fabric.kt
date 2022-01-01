@@ -6,6 +6,7 @@ import net.fabricmc.loom.task.RemapJarTask
 import net.fabricmc.loom.util.Constants
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.platforms.Platform.Companion.REMAP_JAR_NAME
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.fabric.FabricModJsonTask
@@ -20,6 +21,23 @@ import org.gradle.language.jvm.tasks.ProcessResources
 class Fabric(name: String, loaderVersion: String, private val apiVersion: String) : Platform(name, loaderVersion) {
     override val remapTaskType: Class<out DefaultTask>
         get() = RemapJarTask::class.java
+
+    override val DefaultTask.remap: RemapTask
+        get() {
+            val remapJar = this as RemapJarTask
+            return object : RemapTask {
+                override fun getProject() = remapJar.project
+                override fun getInput() = remapJar.input
+                override val archiveBaseName = remapJar.archiveBaseName
+                override val archiveClassifier = remapJar.archiveClassifier
+                override val archiveVersion = remapJar.archiveVersion
+                override val archiveFileName = remapJar.archiveFileName
+                override val archiveFile = remapJar.archiveFile as RegularFileProperty
+                override val destinationDirectory = remapJar.destinationDirectory
+                override val archiveAppendix = remapJar.archiveAppendix
+                override val archiveExtension = remapJar.archiveExtension
+            }
+        }
 
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         super.handle(version, project, root, module, base, parent)
@@ -95,22 +113,6 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
 
         addOptimizedJar(project, jar, remapJar) { remapJar.get().input }
         project.artifacts.add("archives", remapJar)
-    }
-
-    override fun <R> DefaultTask.remap(action: (RemapTask) -> R): R {
-        val remapJar = this as RemapJarTask
-        return action(object : RemapTask {
-            override fun getProject() = remapJar.project
-            override fun getInput() = remapJar.input
-            override val archiveBaseName = remapJar.archiveBaseName
-            override val archiveClassifier = remapJar.archiveClassifier
-            override val archiveVersion = remapJar.archiveVersion
-            override val archiveFileName = remapJar.archiveFileName
-            override val archiveFile = remapJar.archiveFile as RegularFileProperty
-            override val destinationDirectory = remapJar.destinationDirectory
-            override val archiveAppendix = remapJar.archiveAppendix
-            override val archiveExtension = remapJar.archiveExtension
-        })
     }
 
     class Entrypoint(val name: String, val points: Collection<String>) {

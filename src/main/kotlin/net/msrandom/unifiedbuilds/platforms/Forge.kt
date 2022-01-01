@@ -29,6 +29,9 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
     override val remapTaskType: Class<out DefaultTask>
         get() = RemapForgeArtifactTask::class.java
 
+    override val DefaultTask.remap: RemapTask
+        get() = this as RemapForgeArtifactTask
+
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         super.handle(version, project, root, module, base, parent)
 
@@ -250,8 +253,6 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             }
         }
     }
-
-    override fun <R> DefaultTask.remap(action: (RemapTask) -> R) = action(this as RemapForgeArtifactTask)
 
     companion object {
         const val CONTAINED_DEP_CONFIGURATION = "containedDep"
