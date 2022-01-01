@@ -256,7 +256,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         }
     }
 
-    override fun DefaultTask.remap(action: (RemapTask) -> Unit) = action(this as RemapForgeArtifactTask)
+    override fun <R> DefaultTask.remap(action: (RemapTask) -> R) = action(this as RemapForgeArtifactTask)
 
     companion object {
         const val CONTAINED_DEP_CONFIGURATION = "containedDep"

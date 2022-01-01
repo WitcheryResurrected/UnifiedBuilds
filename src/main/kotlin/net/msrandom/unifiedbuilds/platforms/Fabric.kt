@@ -97,9 +97,9 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         project.artifacts.add("archives", remapJar)
     }
 
-    override fun DefaultTask.remap(action: (RemapTask) -> Unit) {
+    override fun <R> DefaultTask.remap(action: (RemapTask) -> R): R {
         val remapJar = this as RemapJarTask
-        action(object : RemapTask {
+        return action(object : RemapTask {
             override fun getProject() = remapJar.project
             override fun getInput() = remapJar.input
             override val archiveBaseName = remapJar.archiveBaseName

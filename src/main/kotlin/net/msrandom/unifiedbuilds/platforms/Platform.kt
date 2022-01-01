@@ -54,7 +54,7 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         project.applyModuleNaming(version, modVersion, "-$name", root, module)
     }
 
-    abstract fun DefaultTask.remap(action: RemapTask.() -> Unit)
+    abstract fun <R> DefaultTask.remap(action: RemapTask.() -> R): R
 
     protected fun addOptimizedJar(
         project: Project,
