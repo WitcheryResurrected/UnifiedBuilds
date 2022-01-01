@@ -2,7 +2,9 @@ package net.msrandom.unifiedbuilds
 
 import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
+import org.gradle.api.file.Directory
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import kotlin.reflect.KClass
 
 abstract class UnifiedBuildsExtension(private val project: Project) {
@@ -13,6 +15,7 @@ abstract class UnifiedBuildsExtension(private val project: Project) {
 
     abstract val modVersion: Property<String>
     abstract val license: Property<String>
+    abstract val sourceDirectoryHandler: Property<Project.() -> Provider<Directory>>
 
     /* The subprojects that would be included in the Jar */
     val modules: NamedDomainObjectContainer<Project> = project.container(Project::class.java)

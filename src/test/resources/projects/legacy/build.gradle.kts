@@ -28,6 +28,7 @@ allprojects {
 }
 
 unifiedBuilds {
+    sourceDirectoryHandler.set { sourceSets.main.flatMap { it.java.destinationDirectory } }
     minecraftVersion.set("1.12.2")
     license.set("CC-2.0")
     modVersion.set("1.0")

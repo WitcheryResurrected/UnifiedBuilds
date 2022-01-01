@@ -91,11 +91,11 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             project.applyTaskFixes(base.project)
         }
 
-        if (legacy) {
-            project.apply {
-                it.plugin(FancyGradle::class.java)
-            }
+        project.apply {
+            it.plugin(FancyGradle::class.java)
+        }
 
+        if (legacy) {
             project.extensions.getByType(FancyExtension::class.java).apply {
                 patches {
                     it.resources
@@ -106,6 +106,11 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             }
 
             minecraft.mappings("snapshot", "20180814-1.12")
+
+            project.extensions.getByType(SourceSetContainer::class.java).named(SourceSet.MAIN_SOURCE_SET_NAME) {
+                val sourceDirectoryHandler = root.extensions.getByType(UnifiedBuildsExtension::class.java).sourceDirectoryHandler
+                it.output.setResourcesDir(sourceDirectoryHandler.flatMap { it(project) })
+            }
 
             if (parent != null) {
                 val mcModInfo = project.tasks.register("createMcModInfo", MCModInfoTask::class.java) {
