@@ -8,7 +8,7 @@ plugins {
 
 val pluginId = name
 
-version = "0.4"
+version = "0.5"
 group = "net.msrandom"
 
 System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }

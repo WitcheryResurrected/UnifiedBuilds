@@ -15,7 +15,6 @@ abstract class UnifiedBuildsExtension(private val project: Project) {
 
     abstract val modVersion: Property<String>
     abstract val license: Property<String>
-    abstract val sourceDirectoryHandler: Property<Project.() -> Provider<Directory>>
 
     /* The subprojects that would be included in the Jar */
     val modules: NamedDomainObjectContainer<Project> = project.container(Project::class.java)
