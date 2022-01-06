@@ -36,7 +36,7 @@ dependencies {
     implementation(group = "com.google.code.gson", name = "gson", version = "2.8.+")
     implementation(group = "org.zeroturnaround", name = "zt-zip", version = "1.+")
 
-    implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
+    implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.2.+")
 
     implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = "5.+")
     implementation(group = "wtf.gofancy.fancygradle", name = "wtf.gofancy.fancygradle.gradle.plugin", version = "1.+")
@@ -49,13 +49,14 @@ dependencies {
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks.withType<KotlinCompile> {
     // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
     kotlinOptions.apiVersion = "1.4"
     kotlinOptions.languageVersion = "1.4"
+    kotlinOptions.jvmTarget = "11"
 }
 
 tasks.test {

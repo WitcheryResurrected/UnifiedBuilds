@@ -120,17 +120,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
 
             minecraft.mappings("snapshot", "20180814-1.12")
 
-            if (parent != null) {
-                val outputDir = project.buildDir.resolve("redirectedOutput")
-                val copyOutputs = project.tasks.register("copyOutputs", Copy::class.java) {
-                    it.destinationDir = outputDir
-                    it.from(main.output)
-                }
-
-                project.gradle.projectsEvaluated {
-                    main.runtimeClasspath = project.files(outputDir) + main.runtimeClasspath.filter { it !in main.output }
-                }
-
+            if (parent != null || base != null && base.project == project) {
                 val mcModInfo = project.tasks.register("createMcModInfo", MCModInfoTask::class.java) {
                     val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
                     if (base != null) {
@@ -147,6 +137,18 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                     }
                     it.from(mcModInfo.flatMap(MCModInfoTask::destinationDirectory))
                     it.dependsOn(mcModInfo)
+                }
+            }
+
+            if (parent != null) {
+                val outputDir = project.buildDir.resolve("redirectedOutput")
+                val copyOutputs = project.tasks.register("copyOutputs", Copy::class.java) {
+                    it.destinationDir = outputDir
+                    it.from(main.output)
+                }
+
+                project.gradle.projectsEvaluated {
+                    main.runtimeClasspath = project.files(outputDir) + main.runtimeClasspath.filter { it !in main.output }
                 }
 
                 project.configurations.all { configuration ->
@@ -169,7 +171,7 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             }
             minecraft.mappings("official", version)
 
-            if (parent != null) {
+            if (parent != null || base != null && base.project == project) {
                 val modsToml = project.tasks.register("createModsToml", ModsTomlTask::class.java) {
                     val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
                     if (base != null) {

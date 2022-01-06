@@ -53,9 +53,12 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         project.dependencies.add("modImplementation", "net.fabricmc:fabric-loader:$loaderVersion")
         project.dependencies.add("modImplementation", "net.fabricmc.fabric-api:fabric-api:$apiVersion")
 
+        if (parent != null || base != null && base.project == project) {
+            project.extensions.add("fabricEntrypoints", project.container(Entrypoint::class.java))
+        }
+
         if (parent != null) {
             val parentProject = parent.getProject(root)
-            project.extensions.add("fabricEntrypoints", project.container(Entrypoint::class.java))
 
             project.gradle.projectsEvaluated {
                 parentProject.tasks.all {
@@ -77,24 +80,25 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
                 project.dependencies.add("api", base.project)
                 println("Found fabric module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
             }
+        } else if (base != null) {
+            project.applyTaskFixes(base.project)
+        }
 
-            val createModJson = project.tasks.register("createModJson", FabricModJsonTask::class.java) {
-                if (base != null) {
-                    val baseProject = root.extensions.getByType(UnifiedBuildsExtension::class.java).baseProject.get()
-                    it.baseData.set(baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java))
-                }
+        if (parent != null || base != null && base.project == project) {
+            val modJson = project.tasks.register("createModJson", FabricModJsonTask::class.java) {
                 val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
+                if (base != null) {
+                    it.baseData.set(unifiedBuilds.baseProject.get().extensions.getByType(UnifiedBuildsModuleExtension::class.java))
+                }
                 it.moduleData.set(module)
                 it.rootData.set(unifiedBuilds)
             }
 
             @Suppress("UnstableApiUsage")
-            project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) {
-                it.dependsOn(createModJson)
-                it.from(createModJson.flatMap(FabricModJsonTask::destinationDirectory))
+            project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) { task ->
+                task.from(modJson.flatMap(FabricModJsonTask::destinationDirectory))
+                task.dependsOn(modJson)
             }
-        } else if (base != null) {
-            project.applyTaskFixes(base.project)
         }
 
         val jar = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)

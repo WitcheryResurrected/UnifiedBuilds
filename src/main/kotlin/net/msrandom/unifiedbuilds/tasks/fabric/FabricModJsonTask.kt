@@ -89,6 +89,17 @@ abstract class FabricModJsonTask : DefaultTask() {
 
             val depends = JsonObject()
 
+            val entrypointsExtesion = project.extensions.getByType(object : TypeOf<NamedDomainObjectContainer<Fabric.Entrypoint>>() {})
+            if (entrypointsExtesion.isNotEmpty() && entrypointsExtesion.any { it.points.isNotEmpty() }) {
+                val entrypointsObject = JsonObject()
+                for (entrypoints in entrypointsExtesion) {
+                    if (entrypoints.points.isNotEmpty()) {
+                        entrypointsObject.add(entrypoints.name, JsonArray().apply { entrypoints.points.forEach(::add) })
+                    }
+                }
+                add("entrypoints", entrypointsObject)
+            }
+
             // If there is no platform with the project name, that means there's only one platform,
             // since multiplatform projects are required to include child projects with matching names
             val platform = moduleData.get().platforms.firstOrNull { it.name == project.name }
@@ -114,16 +125,6 @@ abstract class FabricModJsonTask : DefaultTask() {
                 depends.addProperty(baseData.get().info.modId.get(), "*")
             }
             add("depends", depends)
-
-            val entrypointsExtesion = project.extensions.getByType(object : TypeOf<NamedDomainObjectContainer<Fabric.Entrypoint>>() {})
-            if (entrypointsExtesion.isNotEmpty() && entrypointsExtesion.any { it.points.isNotEmpty() }) {
-                val entrypointsObject = JsonObject()
-                for (entrypoints in entrypointsExtesion) {
-                    if (entrypoints.points.isNotEmpty()) {
-                        entrypointsObject.add(entrypoints.name, JsonArray().apply { entrypoints.points.forEach(::add) })
-                    }
-                }
-            }
         }
         file.writeText(Gson().toJson(json))
     }
