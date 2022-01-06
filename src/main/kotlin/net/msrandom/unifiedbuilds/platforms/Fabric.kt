@@ -6,7 +6,6 @@ import net.fabricmc.loom.task.RemapJarTask
 import net.fabricmc.loom.util.Constants
 import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
-import net.msrandom.unifiedbuilds.platforms.Platform.Companion.REMAP_JAR_NAME
 import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import net.msrandom.unifiedbuilds.tasks.fabric.FabricModJsonTask
@@ -58,6 +57,14 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             val parentProject = parent.getProject(root)
             project.extensions.add("fabricEntrypoints", project.container(Entrypoint::class.java))
 
+            project.gradle.projectsEvaluated {
+                parentProject.tasks.all {
+                    project.tasks.matching { task -> task.name == it.name }.all { task ->
+                        it.dependsOn(task)
+                    }
+                }
+            }
+
             parentProject.dependencies.add("runtimeOnly", project)
             if (base == null) {
                 // If this is the base, then we simply want the parent to depend on it, not include it
@@ -90,11 +97,23 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
             project.applyTaskFixes(base.project)
         }
 
-        val remapJar = project.tasks.named(REMAP_JAR_NAME, RemapJarTask::class.java)
         val jar = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)
+        val optimizeJar = project.tasks.register(OPTIMIZED_JAR_NAME, OptimizeJarTask::class.java) {
+            it.archiveClassifier.set("dev")
+            it.dependsOn(jar)
+            it.input.set(jar.flatMap(Jar::getArchiveFile))
+        }
 
-        project.tasks.named(LifecycleBasePlugin.BUILD_TASK_NAME) {
+        val remapJar = project.tasks.named(REMAP_JAR_NAME, RemapJarTask::class.java)
+        val remapOptimizedJar = project.tasks.register(REMAP_OPTIMIZED_JAR_NAME, RemapJarTask::class.java) {
+            it.dependsOn(optimizeJar)
+            it.input.set(optimizeJar.flatMap(OptimizeJarTask::archiveFile))
+            it.addNestedDependencies.set(true)
+        }
+
+        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
             it.dependsOn(remapJar)
+            it.dependsOn(remapOptimizedJar)
         }
 
         project.tasks.withType(Jar::class.java).matching { it !is RemapJarTask }.all {
@@ -102,16 +121,12 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         }
 
         remapJar.configure {
+            it.archiveClassifier.set("fat")
             it.dependsOn(jar)
             it.input.set(jar.flatMap(Jar::getArchiveFile))
             it.addNestedDependencies.set(true)
         }
 
-        project.tasks.withType(OptimizeJarTask::class.java) {
-            it.owningProject.set(root)
-        }
-
-        addOptimizedJar(project, jar, remapJar) { remapJar.get().input }
         project.artifacts.add("archives", remapJar)
     }
 

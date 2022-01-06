@@ -8,7 +8,7 @@ plugins {
 
 val pluginId = name
 
-version = "0.5"
+version = "0.6"
 group = "net.msrandom"
 
 System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
@@ -85,7 +85,7 @@ publishing {
                     artifactId = pluginId
                     version = project.version.toString()
 
-                    artifact(tasks.jar)
+                    from(components["java"])
                     artifact(sourcesJar)
                 }
 
@@ -94,7 +94,7 @@ publishing {
                     artifactId = "$pluginId.gradle.plugin"
                     version = project.version.toString()
 
-                    artifact(tasks.jar)
+                    from(components["java"])
                 }
             }
 

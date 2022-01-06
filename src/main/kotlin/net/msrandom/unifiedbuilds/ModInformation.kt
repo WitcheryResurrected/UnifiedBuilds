@@ -5,7 +5,7 @@ import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 
 class ModInformation(val project: Project) : (ModInformation.() -> Unit) -> Unit {
-    val modId = property<String>()
+    val modId = UnifiedBuildsExtension.ObservableProperty<String>(project)
     val name = property<String>()
     val description = property<String>()
     val authors = listProperty<String>()

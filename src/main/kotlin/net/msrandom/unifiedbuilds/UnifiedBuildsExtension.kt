@@ -19,10 +19,15 @@ abstract class UnifiedBuildsExtension(private val project: Project) {
     /* The subprojects that would be included in the Jar */
     val modules: NamedDomainObjectContainer<Project> = project.container(Project::class.java)
 
-    private inline fun <reified T : Any> ObservableProperty() = ObservableProperty(T::class)
+    private inline fun <reified T : Any> ObservableProperty() = ObservableProperty(T::class, project)
 
-    inner class ObservableProperty<T : Any> internal constructor(
+    companion object {
+        internal inline fun <reified T : Any> ObservableProperty(project: Project) = ObservableProperty(T::class, project)
+    }
+
+    class ObservableProperty<T : Any> internal constructor(
         type: KClass<T>,
+        project: Project,
         private val property: Property<T> = project.objects.property(type.java)
     ) : Property<T> by property {
         var callback: ((T) -> Unit)? = null

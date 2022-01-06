@@ -6,17 +6,12 @@ import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
 import net.msrandom.unifiedbuilds.tasks.RemapTask
 import org.gradle.api.DefaultTask
 import org.gradle.api.Project
-import org.gradle.api.Task
-import org.gradle.api.file.RegularFile
 import org.gradle.api.file.SourceDirectorySet
 import org.gradle.api.plugins.BasePluginExtension
 import org.gradle.api.plugins.JavaPlugin
-import org.gradle.api.provider.Property
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.api.tasks.TaskProvider
 import org.gradle.jvm.tasks.Jar
-import org.gradle.language.base.plugins.LifecycleBasePlugin
 
 abstract class Platform(val name: String, val loaderVersion: String) {
     abstract val remapTaskType: Class<out DefaultTask>
@@ -54,31 +49,16 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         }
 
         project.applyModuleNaming(version, modVersion, "-$name", root, module)
+
+        project.tasks.withType(OptimizeJarTask::class.java) {
+            it.owningProject.set(root)
+        }
     }
 
     fun DefaultTask.remap(action: RemapTask.() -> Unit) = remap.action()
 
-    protected fun addOptimizedJar(
-        project: Project,
-        jar: TaskProvider<out Jar>,
-        remapJar: TaskProvider<out Task>,
-        remapInput: () -> Property<RegularFile>
-    ) {
-        val optimizeJar = project.tasks.register("optimizeJar", OptimizeJarTask::class.java) {
-            it.dependsOn(jar)
-            it.input.set(jar.flatMap(Jar::getArchiveFile))
-
-            remapInput().set(it.archiveFile)
-            it.finalizedBy(remapJar)
-        }
-
-        project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
-            it.dependsOn(optimizeJar)
-        }
-    }
-
     fun Jar.applyJarDefaults(root: Project) {
-        archiveClassifier.convention("dev")
+        archiveClassifier.convention("fat-dev")
 
         // We want to include licenses by default, mods using this plugin can manually exclude them if needed
         from(root.layout.projectDirectory.file("LICENSE")) {
@@ -104,7 +84,9 @@ abstract class Platform(val name: String, val loaderVersion: String) {
     fun getProject(project: Project) = project.childProjects[name] ?: project
 
     companion object {
+        const val OPTIMIZED_JAR_NAME = "optimizedJar"
         const val REMAP_JAR_NAME = "remapJar"
+        const val REMAP_OPTIMIZED_JAR_NAME = "remapOptimizedJar"
 
         private fun Project.applyModuleNaming(minecraftVersion: String, modVersion: String, platformName: String, root: Project, module: UnifiedBuildsModuleExtension) {
             fun Project.archivesName() = extensions.getByType(BasePluginExtension::class.java).archivesName

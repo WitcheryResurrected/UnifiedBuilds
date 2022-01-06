@@ -73,14 +73,13 @@ abstract class MCModInfoTask : DefaultTask() {
                 }
 
                 val requiredMods = JsonArray()
-                val dependants = JsonArray()
                 val dependencies = JsonArray()
 
                 if (baseData.isPresent) {
                     val baseId = baseData.get().info.modId.get()
                     addProperty("parent", baseId)
                     requiredMods.add(baseId)
-                    dependants.add(baseId)
+                    dependencies.add(baseId)
                 }
 
                 if (project != moduleData.get().project) {
@@ -99,7 +98,6 @@ abstract class MCModInfoTask : DefaultTask() {
 
                 addProperty("useDependencyInformation", true)
                 if (!requiredMods.isEmpty) add("requiredMods", requiredMods)
-                if (!dependants.isEmpty) add("dependants", dependants)
                 if (!dependencies.isEmpty) add("dependencies", dependencies)
             }
         )

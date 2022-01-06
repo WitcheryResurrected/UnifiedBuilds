@@ -17,6 +17,7 @@ import org.gradle.api.NamedDomainObjectContainer
 import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 import org.gradle.api.reflect.TypeOf
+import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.jvm.tasks.Jar
@@ -69,6 +70,15 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
         if (parent != null) {
             val parentProject = parent.getProject(root)
 
+            project.gradle.projectsEvaluated {
+                val runTasks = minecraft.runs.mapTo(hashSetOf(), RunConfig::getTaskName)
+                parentProject.tasks.matching { it.name !in runTasks }.all {
+                    project.tasks.matching { task -> task.name == it.name }.all { task ->
+                        it.dependsOn(task)
+                    }
+                }
+            }
+
             parentProject.dependencies.add("runtimeOnly", project)
             if (!accessTransformers.isEmpty) {
                 parentProject.extensions.configure(UserDevExtension::class.java) {
@@ -111,6 +121,16 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
             minecraft.mappings("snapshot", "20180814-1.12")
 
             if (parent != null) {
+                val outputDir = project.buildDir.resolve("redirectedOutput")
+                val copyOutputs = project.tasks.register("copyOutputs", Copy::class.java) {
+                    it.destinationDir = outputDir
+                    it.from(main.output)
+                }
+
+                project.gradle.projectsEvaluated {
+                    main.runtimeClasspath = project.files(outputDir) + main.runtimeClasspath.filter { it !in main.output }
+                }
+
                 val mcModInfo = project.tasks.register("createMcModInfo", MCModInfoTask::class.java) {
                     val unifiedBuilds = root.extensions.getByType(UnifiedBuildsExtension::class.java)
                     if (base != null) {
@@ -138,10 +158,14 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                         }
                     }
                 }
+
+                project.tasks.matching { it.name == "prepareRuns" }.all {
+                    it.dependsOn(copyOutputs)
+                }
             }
         } else {
             project.afterEvaluate {
-                MojangLicenseHelper.hide(project, "official", version)
+                MojangLicenseHelper.hide(it, "official", version)
             }
             minecraft.mappings("official", version)
 
@@ -173,18 +197,24 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                 config.property("fml.coreMods.load", plugin)
             }
 
-            if (!legacy) {
-                project.gradle.projectsEvaluated {
-                    if (module.info.modId.isPresent) {
-                        config.mods.create(module.info.modId.get()) { config ->
-                            config.source(main)
-                        }
+            if (parent != null) {
+                for (run in parent.getProject(root).extensions.getByType(UserDevExtension::class.java).runs) {
+                    run.child(config)
+                    config.parent(run)
+                }
+
+                module.info.modId.onSet {
+                    config.mods.create(it) { config ->
+                        config.source(main)
                     }
                 }
             }
         }
 
-        minecraft.runs.create("client", createRun)
+        minecraft.runs.create("client") {
+            createRun(it)
+            it.client(true)
+        }
         minecraft.runs.create("server", createRun)
 
         project.extensions.getByType(object : TypeOf<NamedDomainObjectContainer<RenameJarInPlace>>() {}).whenObjectAdded { task ->
@@ -203,37 +233,42 @@ class Forge(name: String, loaderVersion: String) : Platform(name, loaderVersion)
                                 manifest.attributes(mapOf("FMLAT" to "accesstransformer.cfg"))
                             }
                         } else {
-                            project.gradle.projectsEvaluated {
-                                if (module.info.modId.isPresent) {
-                                    manifest.attributes(
-                                        mapOf(
-                                            "Implementation-Title" to module.info.modId.get(),
-                                            "Implementation-Version" to root.extensions.getByType(UnifiedBuildsExtension::class.java).modVersion.get()
-                                        )
+                            module.info.modId.onSet { modId ->
+                                manifest.attributes(
+                                    mapOf(
+                                        "Implementation-Title" to modId,
+                                        "Implementation-Version" to root.extensions.getByType(UnifiedBuildsExtension::class.java).modVersion.get()
                                     )
-                                }
+                                )
                             }
                         }
                     }
                 }
 
+                val optimizeJar = project.tasks.register(OPTIMIZED_JAR_NAME, OptimizeJarTask::class.java) {
+                    it.archiveClassifier.set("dev")
+                    it.dependsOn(jar)
+                    it.input.set(jar.flatMap(Jar::getArchiveFile))
+                }
+
                 val remapJar = project.tasks.register(REMAP_JAR_NAME, RemapForgeArtifactTask::class.java) {
+                    it.archiveClassifier.set("fat")
                     it.setDependsOn(task.dependsOn)
                     it.input.set(task.input)
+                }
+
+                val remapOptimizedJar = project.tasks.register(REMAP_OPTIMIZED_JAR_NAME, RemapForgeArtifactTask::class.java) {
+                    it.dependsOn(optimizeJar)
+                    it.input.set(optimizeJar.flatMap(OptimizeJarTask::archiveFile))
                 }
 
                 project.tasks.withType(RemapForgeArtifactTask::class.java) {
                     it.nestJars.set(legacy)
                 }
 
-                project.tasks.withType(OptimizeJarTask::class.java) {
-                    it.owningProject.set(root)
-                }
-
-                addOptimizedJar(project, jar, remapJar) { remapJar.get().input }
-
                 project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) {
                     it.dependsOn(remapJar)
+                    it.dependsOn(remapOptimizedJar)
                 }
 
                 project.artifacts.add("archives", remapJar.flatMap(RemapForgeArtifactTask::getOutput))

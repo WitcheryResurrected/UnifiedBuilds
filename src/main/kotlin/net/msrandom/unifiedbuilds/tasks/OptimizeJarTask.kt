@@ -27,7 +27,6 @@ abstract class OptimizeJarTask : ProGuardTask(), ProjectJarArchive {
     init {
         apply {
             setConventions()
-            archiveClassifier.convention("minified")
             configs.from(owningProject.map { it.layout.projectDirectory.file("proguard.conf") })
 
             injars(input)

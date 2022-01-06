@@ -50,7 +50,7 @@ abstract class ModsTomlTask : DefaultTask() {
                 mapOf(
                     "modId" to baseData.get().info.modId.get(),
                     "mandatory" to true,
-                    "ordering" to "BEFORE"
+                    "ordering" to "AFTER"
                 )
             )
         }
