@@ -25,27 +25,6 @@ gradlePlugin {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
-
-    registerFeature("jdk8") {
-        usingSourceSet(sourceSets.main.get())
-    }
-
-    registerFeature("jdk11") {
-        usingSourceSet(sourceSets.main.get())
-    }
-}
-
-configurations {
-    named("jdk11ApiElements") {
-        attributes {
-            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 11)
-        }
-    }
-    named("jdk11RuntimeElements") {
-        attributes {
-            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 11)
-        }
-    }
 }
 
 repositories {
@@ -62,8 +41,7 @@ dependencies {
     implementation(group = "com.google.code.gson", name = "gson", version = "2.8.+")
     implementation(group = "org.zeroturnaround", name = "zt-zip", version = "1.+")
 
-    "jdk8Implementation"(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
-    "jdk11Implementation"(group = "com.guardsquare", name = "proguard-gradle", version = "7.2.+")
+    implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
 
     implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = "5.+")
     implementation(group = "wtf.gofancy.fancygradle", name = "wtf.gofancy.fancygradle.gradle.plugin", version = "1.+")
