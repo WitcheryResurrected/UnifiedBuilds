@@ -24,7 +24,7 @@ gradlePlugin {
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_1_8
 
     registerFeature("jdk8") {
         usingSourceSet(sourceSets.main.get())
@@ -32,6 +32,19 @@ java {
 
     registerFeature("jdk11") {
         usingSourceSet(sourceSets.main.get())
+    }
+}
+
+configurations {
+    named("jdk11ApiElements") {
+        attributes {
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 11)
+        }
+    }
+    named("jdk11RuntimeElements") {
+        attributes {
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 11)
+        }
     }
 }
 
