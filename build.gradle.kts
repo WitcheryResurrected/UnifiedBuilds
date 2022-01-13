@@ -56,7 +56,6 @@ tasks.withType<KotlinCompile> {
     // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
     kotlinOptions.apiVersion = "1.4"
     kotlinOptions.languageVersion = "1.4"
-    kotlinOptions.jvmTarget = "11"
 }
 
 tasks.test {
