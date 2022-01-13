@@ -22,6 +22,19 @@ gradlePlugin {
     }
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_11
+
+    registerFeature("jdk8") {
+        usingSourceSet(sourceSets.main.get())
+    }
+
+    registerFeature("jdk11") {
+        usingSourceSet(sourceSets.main.get())
+    }
+}
+
 repositories {
     mavenCentral()
     maven(url = "https://files.minecraftforge.net/maven")
@@ -36,7 +49,8 @@ dependencies {
     implementation(group = "com.google.code.gson", name = "gson", version = "2.8.+")
     implementation(group = "org.zeroturnaround", name = "zt-zip", version = "1.+")
 
-    implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.2.+")
+    "jdk8Implementation"(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
+    "jdk11Implementation"(group = "com.guardsquare", name = "proguard-gradle", version = "7.2.+")
 
     implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = "5.+")
     implementation(group = "wtf.gofancy.fancygradle", name = "wtf.gofancy.fancygradle.gradle.plugin", version = "1.+")
@@ -45,11 +59,6 @@ dependencies {
     testImplementation(gradleTestKit())
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "5.8.+")
     testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.8.+")
-}
-
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks.withType<KotlinCompile> {
@@ -68,15 +77,6 @@ tasks.test {
     }
 }
 
-val sourcesJar by tasks.registering(Jar::class) {
-    archiveClassifier.set("sources")
-    from(sourceSets.main.map(SourceSet::getAllSource))
-}
-
-artifacts {
-    archives(sourcesJar)
-}
-
 publishing {
     System.getenv("MAVEN_USERNAME")?.let { mavenUsername ->
         System.getenv("MAVEN_PASSWORD")?.let { mavenPassword ->
@@ -87,7 +87,7 @@ publishing {
                     version = project.version.toString()
 
                     from(components["java"])
-                    artifact(sourcesJar)
+                    // artifact(sourcesJar)
                 }
 
                 create<MavenPublication>("plugin") {

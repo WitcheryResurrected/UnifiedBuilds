@@ -98,6 +98,8 @@ abstract class RemapForgeArtifactTask : ReobfuscateJar(), RemapTask {
                 it.toByteArray()
             }
         }
+
+        handleMerge("pack.mcmeta") { existing, _ -> existing.readAllBytes() }
     }
 
     fun handleMerge(name: String, action: MergeAction) {

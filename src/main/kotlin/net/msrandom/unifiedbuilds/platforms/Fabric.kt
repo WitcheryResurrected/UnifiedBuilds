@@ -132,6 +132,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         }
 
         project.artifacts.add("archives", remapJar)
+        project.artifacts.add("archives", remapOptimizedJar)
     }
 
     class Entrypoint(val name: String, val points: Collection<String>) {

@@ -102,6 +102,9 @@ abstract class Platform(val name: String, val loaderVersion: String) {
                     }
                 } else {
                     archivesName().set(module.project.archivesName())
+                    afterEvaluate {
+                        group = module.project.group
+                    }
                 }
             }
 
