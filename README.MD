@@ -3,7 +3,6 @@
 Helper Gradle plugin with the goal of wrapping Forge Gradle and Loom into an easy-to-use modular APIs.
 
 ## Current features:
-* Minifying Jars by using proguard
 * Having a similar setup for tasks between Forge and Fabric projects(or any other platform that is to be supported)
 * Allow common code easily between projects of different modloaders
 * Not requiring any sort of runtime

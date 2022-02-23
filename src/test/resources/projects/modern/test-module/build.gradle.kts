@@ -1,3 +1,5 @@
+group = "net.msrandom.testmodule"
+
 base {
     archivesName.set("Module")
 }

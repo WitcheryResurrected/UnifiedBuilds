@@ -6,12 +6,28 @@ import org.gradle.api.Project
 import org.gradle.api.plugins.JavaPlugin
 
 class UnifiedBuildsPlugin : Plugin<Project> {
+    private fun Project.applyPluginRecursively() {
+        for (project in childProjects.values) {
+            project.apply {
+                it.plugin(this@UnifiedBuildsPlugin.javaClass)
+            }
+
+            project.applyPluginRecursively()
+        }
+    }
+
     override fun apply(project: Project) {
         val unifiedBuilds = project.extensions.create("unifiedBuilds", UnifiedBuildsExtension::class.java, project)
         val unifiedModule = project.extensions.create("unifiedModule", UnifiedBuildsModuleExtension::class.java, project)
+
         project.apply {
             it.plugin(JavaPlugin::class.java)
         }
+
+        project.configurations.create(MOD_MODULE_CONFIGURATION_NAME)
+        project.configurations.create(MODULE_DEP_CONFIGURATION_NAME)
+
+        project.applyPluginRecursively()
 
         unifiedBuilds.minecraftVersion.onSet { mcVersion ->
             unifiedBuilds.baseProject.onSet { baseProject ->
@@ -23,15 +39,12 @@ class UnifiedBuildsPlugin : Plugin<Project> {
 
     private fun Project.setupRootProject(version: String, unifiedBuilds: UnifiedBuildsExtension, unifiedModule: UnifiedBuildsModuleExtension, baseProject: Project) {
         unifiedModule.platforms.all { rootPlatform ->
+            println("Setting up root project for ${rootPlatform.name} at $path")
+
             val baseData = baseProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java)
             val base = baseData.platforms.firstOrNull { it.name == rootPlatform.name }
             val baseProjectPlatform = base?.let { ProjectPlatform(it.getProject(baseData.project), it) }
             val parentProject = rootPlatform.getProject(this)
-            if (parentProject != this) {
-                tasks.named(JavaPlugin.JAR_TASK_NAME) {
-                    it.enabled = false
-                }
-            }
 
             rootPlatform.handle(version, parentProject, this, unifiedModule, baseProjectPlatform, null)
             unifiedBuilds.modules.all { module ->
@@ -55,5 +68,10 @@ class UnifiedBuildsPlugin : Plugin<Project> {
                 }
             }
         }
+    }
+
+    companion object {
+        const val MOD_MODULE_CONFIGURATION_NAME = "modModule"
+        const val MODULE_DEP_CONFIGURATION_NAME = "moduleDep"
     }
 }

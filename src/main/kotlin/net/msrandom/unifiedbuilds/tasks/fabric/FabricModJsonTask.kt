@@ -3,32 +3,18 @@ package net.msrandom.unifiedbuilds.tasks.fabric
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
-import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
+import net.msrandom.unifiedbuilds.UnifiedBuildsPlugin
 import net.msrandom.unifiedbuilds.platforms.Fabric
-import org.gradle.api.DefaultTask
+import net.msrandom.unifiedbuilds.tasks.AbstractModInfoTask
 import org.gradle.api.NamedDomainObjectContainer
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.Property
+import org.gradle.api.artifacts.ProjectDependency
 import org.gradle.api.reflect.TypeOf
-import org.gradle.api.tasks.*
+import org.gradle.api.tasks.SourceSet
+import org.gradle.api.tasks.SourceSetContainer
+import org.gradle.api.tasks.TaskAction
 
-@CacheableTask
-abstract class FabricModJsonTask : DefaultTask() {
-    abstract val baseData: Property<UnifiedBuildsModuleExtension>
-        @Internal get
-
-    abstract val moduleData: Property<UnifiedBuildsModuleExtension>
-        @Internal get
-
-    abstract val rootData: Property<UnifiedBuildsExtension>
-        @Internal get
-
-    abstract val destinationDirectory: DirectoryProperty
-        @Optional
-        @OutputDirectory
-        get
-
+abstract class FabricModJsonTask : AbstractModInfoTask() {
     init {
         apply {
             destinationDirectory.convention(project.layout.buildDirectory.dir("generated-fabric-json"))
@@ -100,8 +86,6 @@ abstract class FabricModJsonTask : DefaultTask() {
                 add("entrypoints", entrypointsObject)
             }
 
-            // If there is no platform with the project name, that means there's only one platform,
-            // since multiplatform projects are required to include child projects with matching names
             val platform = moduleData.get().platforms.firstOrNull { it.name == project.name }
                 ?: moduleData.get().platforms.first()
 
@@ -121,9 +105,14 @@ abstract class FabricModJsonTask : DefaultTask() {
                 }
                 if (suggests.size() != 0) add("suggests", suggests)
             }
-            if (baseData.isPresent) {
-                depends.addProperty(baseData.get().info.modId.get(), "*")
+
+            moduleData.get().project.configurations.getByName(UnifiedBuildsPlugin.MODULE_DEP_CONFIGURATION_NAME).dependencies.all {
+                if (it is ProjectDependency) {
+                    val id = it.dependencyProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java).info.modId.get()
+                    depends.addProperty(id, "*")
+                }
             }
+
             add("depends", depends)
         }
         file.writeText(Gson().toJson(json))

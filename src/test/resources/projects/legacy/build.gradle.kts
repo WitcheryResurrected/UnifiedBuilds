@@ -1,8 +1,6 @@
 import net.msrandom.unifiedbuilds.UnifiedBuildsPlugin
-import net.msrandom.unifiedbuilds.platforms.Forge
-import net.msrandom.unifiedbuilds.tasks.OptimizeJarTask
+import net.msrandom.unifiedbuilds.platforms.Legacy
 import org.gradle.api.JavaVersion
-import org.gradle.api.plugins.JavaPlugin
 
 plugins {
     id("unifiedbuilds")
@@ -22,7 +20,7 @@ allprojects {
 
     unifiedModule {
         platforms {
-            add(Forge("forge", "14.23.5.2855"))
+            add(Legacy("forge", "14.23.5.2855"))
         }
     }
 }

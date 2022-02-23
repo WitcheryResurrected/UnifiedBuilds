@@ -1,3 +1,5 @@
+group = "net.msrandom.testbase"
+
 base {
     archivesName.set("Base")
 }

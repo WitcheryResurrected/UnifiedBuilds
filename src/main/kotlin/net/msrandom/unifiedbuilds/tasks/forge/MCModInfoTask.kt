@@ -4,37 +4,14 @@ import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import net.msrandom.unifiedbuilds.ModInformation
-import net.msrandom.unifiedbuilds.UnifiedBuildsExtension
 import net.msrandom.unifiedbuilds.UnifiedBuildsModuleExtension
-import org.gradle.api.DefaultTask
-import org.gradle.api.file.DirectoryProperty
-import org.gradle.api.provider.Property
-import org.gradle.api.tasks.*
-import org.gradle.api.tasks.Optional
+import net.msrandom.unifiedbuilds.UnifiedBuildsPlugin
+import net.msrandom.unifiedbuilds.tasks.AbstractModInfoTask
+import org.gradle.api.artifacts.ProjectDependency
+import org.gradle.api.tasks.TaskAction
 import java.util.*
 
-@CacheableTask
-abstract class MCModInfoTask : DefaultTask() {
-    abstract val baseData: Property<UnifiedBuildsModuleExtension>
-        @Internal get
-
-    abstract val moduleData: Property<UnifiedBuildsModuleExtension>
-        @Internal get
-
-    abstract val rootData: Property<UnifiedBuildsExtension>
-        @Internal get
-
-    abstract val destinationDirectory: DirectoryProperty
-        @Optional
-        @OutputDirectory
-        get
-
-    init {
-        apply {
-            destinationDirectory.convention(project.layout.buildDirectory.dir("generatedModInfo"))
-        }
-    }
-
+abstract class MCModInfoTask : AbstractModInfoTask() {
     @TaskAction
     fun makeJson() {
         val modInfoFile = destinationDirectory.file("mcmod.info").get().asFile
@@ -66,20 +43,22 @@ abstract class MCModInfoTask : DefaultTask() {
 
                 fun ModInformation.Dependency.toDependencyNotation() = buildString {
                     append(modId)
-                    if (version != null) {
+                    version?.let {
                         append('@')
-                        append(version)
+                        append(it)
                     }
                 }
 
                 val requiredMods = JsonArray()
                 val dependencies = JsonArray()
 
-                if (baseData.isPresent) {
-                    val baseId = baseData.get().info.modId.get()
-                    addProperty("parent", baseId)
-                    requiredMods.add(baseId)
-                    dependencies.add(baseId)
+                moduleData.get().project.configurations.getByName(UnifiedBuildsPlugin.MODULE_DEP_CONFIGURATION_NAME).dependencies.all {
+                    if (it is ProjectDependency) {
+                        val id = it.dependencyProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java).info.modId.get()
+                        addProperty("parent", id)
+                        requiredMods.add(id)
+                        dependencies.add(id)
+                    }
                 }
 
                 if (project != moduleData.get().project) {

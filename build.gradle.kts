@@ -8,7 +8,7 @@ plugins {
 
 val pluginId = name
 
-version = "0.6"
+version = "0.7"
 group = "net.msrandom"
 
 System.getenv("GITHUB_RUN_NUMBER")?.let { version = "$version-$it" }
@@ -25,37 +25,41 @@ gradlePlugin {
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
 }
 
 repositories {
     mavenCentral()
+    gradlePluginPortal()
     maven(url = "https://files.minecraftforge.net/maven")
     maven(url = "https://gitlab.com/api/v4/projects/26758973/packages/maven")
     maven(url = "https://maven.fabricmc.net/")
 }
 
 dependencies {
-    implementation(kotlin("stdlib", version = "1.4.+"))
+    implementation(kotlin("stdlib"))
 
     implementation(group = "com.moandjiezana.toml", name = "toml4j", version = "0.7.+")
     implementation(group = "com.google.code.gson", name = "gson", version = "2.8.+")
-    implementation(group = "org.zeroturnaround", name = "zt-zip", version = "1.+")
 
-    implementation(group = "com.guardsquare", name = "proguard-gradle", version = "7.1.+")
+    implementation(group = "gradle.plugin.com.github.johnrengelman", name = "shadow", version = "7.1.+")
 
     implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = "5.+")
     implementation(group = "wtf.gofancy.fancygradle", name = "wtf.gofancy.fancygradle.gradle.plugin", version = "1.+")
-    implementation(group = "net.fabricmc", name = "fabric-loom", version = "0.10-SNAPSHOT")
+    implementation(group = "net.fabricmc", name = "fabric-loom", version = "0.11-SNAPSHOT")
 
     testImplementation(gradleTestKit())
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "5.8.+")
     testRuntimeOnly(group = "org.junit.jupiter", name = "junit-jupiter-engine", version = "5.8.+")
 }
 
+dependencies {
+    runtimeOnly(files("libs"))
+}
+
 tasks.withType<KotlinCompile> {
-    // If we want lambdas, we have to use older versions that didn't apply optimizations that aren't compatible with gradle
-    kotlinOptions.apiVersion = "1.4"
-    kotlinOptions.languageVersion = "1.4"
+    kotlinOptions.apiVersion = "1.5"
+    kotlinOptions.languageVersion = "1.5"
 }
 
 tasks.test {
@@ -65,6 +69,10 @@ tasks.test {
     testLogging {
         showStandardStreams = true
     }
+}
+
+tasks.jar {
+    from("LICENSE")
 }
 
 publishing {
@@ -77,7 +85,7 @@ publishing {
                     version = project.version.toString()
 
                     from(components["java"])
-                    // artifact(sourcesJar)
+                    artifact(tasks.named("sourcesJar"))
                 }
 
                 create<MavenPublication>("plugin") {
