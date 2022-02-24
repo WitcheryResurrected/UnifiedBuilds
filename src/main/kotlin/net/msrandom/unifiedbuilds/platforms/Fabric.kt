@@ -19,7 +19,7 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         get() = RemapFabricArtifactTask::class.java
 
     override val Jar.input: RegularFileProperty
-        get() = (this as RemapFabricArtifactTask).inputFile
+        get() = (this as RemapFabricArtifactTask).input
 
     override val Jar.shade: ConfigurableFileCollection
         get() = (this as RemapFabricArtifactTask).shade
@@ -29,14 +29,16 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
         project.configurations.create(SHADE_CONFIGURATION_NAME) { it.isCanBeConsumed = false }
 
-        super.handle(version, project, root, module, base, parent)
-
         project.apply {
             it.plugin(LoomGradlePluginBootstrap::class.java)
         }
 
         val loom = project.extensions.getByType(LoomGradleExtensionAPI::class.java)
         loom.remapArchives.set(false)
+
+        val remapJar = project.tasks.replace(REMAP_JAR_TASK_NAME, RemapFabricArtifactTask::class.java)
+
+        super.handle(version, project, root, module, base, parent)
 
         project.dependencies.add(Constants.Configurations.MINECRAFT, "com.mojang:minecraft:$version")
         project.dependencies.add(Constants.Configurations.MAPPINGS, loom.officialMojangMappings())
@@ -52,10 +54,9 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
         }
 
         val jar = project.tasks.named(JavaPlugin.JAR_TASK_NAME, Jar::class.java)
-        val remapJar = project.tasks.replace(REMAP_JAR_TASK_NAME, RemapFabricArtifactTask::class.java)
 
         remapJar.dependsOn(jar)
-        remapJar.inputFile.set(jar.flatMap(Jar::getArchiveFile))
+        remapJar.input.set(jar.flatMap(Jar::getArchiveFile))
         remapJar.shade.from(project.configurations.getByName(SHADE_CONFIGURATION_NAME))
 
         project.tasks.named(LifecycleBasePlugin.ASSEMBLE_TASK_NAME) { it.dependsOn(remapJar) }

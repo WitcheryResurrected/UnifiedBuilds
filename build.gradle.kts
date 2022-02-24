@@ -46,7 +46,7 @@ dependencies {
 
     implementation(group = "net.minecraftforge.gradle", name = "ForgeGradle", version = "5.+")
     implementation(group = "wtf.gofancy.fancygradle", name = "wtf.gofancy.fancygradle.gradle.plugin", version = "1.+")
-    implementation(group = "net.fabricmc", name = "fabric-loom", version = "0.11-SNAPSHOT")
+    implementation(group = "net.fabricmc", name = "fabric-loom", version = "0.10-SNAPSHOT")
 
     testImplementation(gradleTestKit())
     testImplementation(group = "org.junit.jupiter", name = "junit-jupiter-api", version = "5.8.+")

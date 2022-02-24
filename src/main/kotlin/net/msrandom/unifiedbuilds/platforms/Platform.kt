@@ -134,9 +134,9 @@ abstract class Platform(val name: String, val loaderVersion: String) {
             project.tasks.named(JavaPlugin.PROCESS_RESOURCES_TASK_NAME, ProcessResources::class.java) { task ->
                 val output = infoTask.flatMap(AbstractModInfoTask::destinationDirectory)
 
-                modInfo.destination?.let {
+                modInfo.destination?.let { destination ->
                     task.from(output) {
-                        task.into(it)
+                        it.into(destination)
                     }
                 } ?: task.from(output)
 
