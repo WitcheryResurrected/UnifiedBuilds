@@ -47,7 +47,7 @@ class Legacy(name: String, loaderVersion: String) : AbstractForgePlatform(name, 
             project.repositories.maven { it.setUrl("https://maven.msrandom.net/repository/root") }
         )
 
-        project.dependencies.add(JavaPlugin.RUNTIME_ONLY_CONFIGURATION_NAME, "net.msrandom.resourcefixer:LegacyFGResourceFixer:1.+")
+        project.dependencies.add(JavaPlugin.RUNTIME_ONLY_CONFIGURATION_NAME, "net.msrandom.resourcefixer:LegacyFGResourceFixer:1.2-5")
 
         project.extensions.getByType(FancyExtension::class.java).apply {
             patches {
