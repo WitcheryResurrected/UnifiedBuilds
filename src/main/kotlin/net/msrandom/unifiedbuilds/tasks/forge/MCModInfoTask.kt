@@ -52,10 +52,11 @@ abstract class MCModInfoTask : AbstractModInfoTask() {
                 val requiredMods = JsonArray()
                 val dependencies = JsonArray()
 
+                val base = rootData.get().baseProject.get()
+                addProperty("parent", base.extensions.getByType(UnifiedBuildsModuleExtension::class.java).info.modId.get())
                 moduleData.get().project.configurations.getByName(UnifiedBuildsPlugin.MODULE_DEP_CONFIGURATION_NAME).dependencies.all {
                     if (it is ProjectDependency) {
                         val id = it.dependencyProject.extensions.getByType(UnifiedBuildsModuleExtension::class.java).info.modId.get()
-                        addProperty("parent", id)
                         requiredMods.add(id)
                         dependencies.add(id)
                     }
