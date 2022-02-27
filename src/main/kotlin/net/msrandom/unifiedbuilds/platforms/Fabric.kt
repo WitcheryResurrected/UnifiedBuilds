@@ -27,7 +27,10 @@ class Fabric(name: String, loaderVersion: String, private val apiVersion: String
     override val modInfo = ModInfoData("createModJson", FabricModJsonTask::class)
 
     override fun handle(version: String, project: Project, root: Project, module: UnifiedBuildsModuleExtension, base: ProjectPlatform?, parent: Platform?) {
-        project.configurations.create(SHADE_CONFIGURATION_NAME) { it.isCanBeConsumed = false }
+        project.configurations.create(SHADE_CONFIGURATION_NAME) {
+            it.isCanBeConsumed = false
+            it.isTransitive = false
+        }
 
         project.apply {
             it.plugin(LoomGradlePluginBootstrap::class.java)

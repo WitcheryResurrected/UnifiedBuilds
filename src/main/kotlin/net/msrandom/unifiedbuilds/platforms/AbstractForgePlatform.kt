@@ -41,8 +41,14 @@ abstract class AbstractForgePlatform(name: String, loaderVersion: String) : Plat
         val main = project.extension<SourceSetContainer>().getByName(SourceSet.MAIN_SOURCE_SET_NAME)
 
         val moduleConfiguration = project.configurations.getByName(MOD_MODULE_CONFIGURATION_NAME)
-        project.configurations.create(SHADE_CONFIGURATION_NAME) { it.isCanBeConsumed = false }
-        project.configurations.create(INCLUDE_CONFIGURATION_NAME) { it.isCanBeConsumed = false }
+        project.configurations.create(SHADE_CONFIGURATION_NAME) {
+            it.isCanBeConsumed = false
+            it.isTransitive = false
+        }
+        project.configurations.create(INCLUDE_CONFIGURATION_NAME) {
+            it.isCanBeConsumed = false
+            it.isTransitive = false
+        }
         project.dependencies.add("minecraft", "net.minecraftforge:forge:$version-$loaderVersion")
 
         if (parent != null || base != null && base.project == project) {

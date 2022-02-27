@@ -24,8 +24,8 @@ class UnifiedBuildsPlugin : Plugin<Project> {
             it.plugin(JavaPlugin::class.java)
         }
 
-        project.configurations.create(MOD_MODULE_CONFIGURATION_NAME)
-        project.configurations.create(MODULE_DEP_CONFIGURATION_NAME)
+        project.configurations.create(MOD_MODULE_CONFIGURATION_NAME) { it.isTransitive = false }
+        project.configurations.create(MODULE_DEP_CONFIGURATION_NAME) { it.isTransitive = false }
 
         project.applyPluginRecursively()
 

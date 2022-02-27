@@ -58,13 +58,11 @@ class Legacy(name: String, loaderVersion: String) : AbstractForgePlatform(name, 
 
         minecraft.mappings("snapshot", "20180814-1.12")
 
-        if (parent != null) {
-            project.configurations.all { configuration ->
-                configuration.resolutionStrategy {
-                    it.eachDependency { dependency ->
-                        if (dependency.requested.group == "net.minecraftforge" && dependency.requested.name == "mergetool") {
-                            dependency.useVersion("0.2.3.3")
-                        }
+        project.configurations.all { configuration ->
+            configuration.resolutionStrategy {
+                it.eachDependency { dependency ->
+                    if (dependency.requested.group == "net.minecraftforge" && dependency.requested.name == "mergetool") {
+                        dependency.useVersion("0.2.3.3")
                     }
                 }
             }

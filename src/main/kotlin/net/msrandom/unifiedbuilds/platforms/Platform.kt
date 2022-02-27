@@ -26,10 +26,6 @@ abstract class Platform(val name: String, val loaderVersion: String) {
 
     protected abstract val modInfo: ModInfoData
 
-    private fun Project.depend(configuration: String, dependency: Any) {
-        (dependencies.add(configuration, dependency) as ProjectDependency).isTransitive = false
-    }
-
     protected fun UnifiedBuildsModuleExtension.dependencies(action: Project.() -> Unit) {
         project.configurations.getByName(MOD_MODULE_CONFIGURATION_NAME).dependencies.all {
             if (it is ProjectDependency) {
@@ -97,10 +93,10 @@ abstract class Platform(val name: String, val loaderVersion: String) {
         if (parent != null) {
             val parentProject = parent.getProject(root)
 
-            root.depend(MOD_MODULE_CONFIGURATION_NAME, module.project)
-            root.depend(MODULE_DEP_CONFIGURATION_NAME, module.project)
+            root.dependencies.add(MOD_MODULE_CONFIGURATION_NAME, module.project)
+            root.dependencies.add(MODULE_DEP_CONFIGURATION_NAME, module.project)
             if (base == null) {
-                parentProject.depend(
+                parentProject.dependencies.add(
                     SHADE_CONFIGURATION_NAME,
                     parentProject.dependencies.project(mapOf("path" to project.path, "configuration" to FINAL_ARCHIVES_CONFIGURATION_NAME))
                 )
@@ -108,14 +104,14 @@ abstract class Platform(val name: String, val loaderVersion: String) {
                 println("Found base project for $name at ${project.path}, adding as a dependency for ${parentProject.path}")
             } else {
                 // If this is not the base, then we include it with the parent
-                parentProject.depend(
+                parentProject.dependencies.add(
                     INCLUDE_CONFIGURATION_NAME,
                     parentProject.dependencies.project(mapOf("path" to project.path, "configuration" to FINAL_ARCHIVES_CONFIGURATION_NAME))
                 )
 
                 // Make all modules that are not the base depend on it
-                module.project.depend(MOD_MODULE_CONFIGURATION_NAME, base.project.moduleParent() ?: base.project)
-                module.project.depend(MODULE_DEP_CONFIGURATION_NAME, base.project.moduleParent() ?: base.project)
+                module.project.dependencies.add(MOD_MODULE_CONFIGURATION_NAME, base.project.moduleParent() ?: base.project)
+                module.project.dependencies.add(MODULE_DEP_CONFIGURATION_NAME, base.project.moduleParent() ?: base.project)
                 println("Found $name module at ${project.path}, adding as a dependency for ${parentProject.path} and depending on ${base.project.path} as the base.")
             }
         }
