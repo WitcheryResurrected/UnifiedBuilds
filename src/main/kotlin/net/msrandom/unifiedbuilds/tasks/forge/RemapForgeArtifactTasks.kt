@@ -91,7 +91,7 @@ abstract class RemapLegacyArtifactTask : Jar() {
         val containedManifest = StringBuilder()
         for (file in project.configurations.getByName(Platform.INCLUDE_CONFIGURATION_NAME)) {
             if (containedManifest.isNotEmpty()) {
-                containedManifest.append(", ")
+                containedManifest.append(" ")
             }
             containedManifest.append(file.name)
         }
