@@ -47,6 +47,7 @@ class UnifiedBuildsPlugin : Plugin<Project> {
             val parentProject = rootPlatform.getProject(this)
 
             rootPlatform.handle(version, parentProject, this, unifiedModule, baseProjectPlatform, null)
+            unifiedBuilds.modules.add(baseProject)
             unifiedBuilds.modules.all { module ->
                 val data = module.extensions.getByType(UnifiedBuildsModuleExtension::class.java)
                 // Platforms in the core module that have the same name are considered the 'parent', this is the project you'd run for all modules to be available.

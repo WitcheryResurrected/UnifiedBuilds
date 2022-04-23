@@ -77,7 +77,6 @@ abstract class RemapLegacyArtifactTask : Jar() {
     fun remap() {
         remapper.apply()
         val zipTree = remapper.output.map(project::zipTree).get()
-        manifest.from(zipTree.manifest)
 
         if (!shade.isEmpty) {
             from(shade.map(project::zipTree))
@@ -87,6 +86,8 @@ abstract class RemapLegacyArtifactTask : Jar() {
                 }
             )
         }
+
+        manifest.from(zipTree.manifest)
 
         val containedManifest = StringBuilder()
         for (file in project.configurations.getByName(Platform.INCLUDE_CONFIGURATION_NAME)) {
@@ -130,7 +131,6 @@ abstract class RemapForgeArtifactTask : ShadowJar() {
     fun remap() {
         remapper.apply()
         val zipTree = remapper.output.map(project::zipTree).get()
-        manifest.from(zipTree.manifest)
 
         if (!shade.isEmpty) {
             from(shade.map(project::zipTree))
@@ -140,6 +140,8 @@ abstract class RemapForgeArtifactTask : ShadowJar() {
                 }
             )
         }
+
+        manifest.from(zipTree.manifest)
 
         from(zipTree)
         super.copy()
